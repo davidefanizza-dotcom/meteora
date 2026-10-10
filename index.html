@@ -714,13 +714,24 @@ async function playAt(i){const t=Q.list[i];if(!t)return;Q.idx=i;sessionPlayed.ad
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const wantApp=()=>cfg.out==='app'||(cfg.out==='auto'&&isIOS);
 async function appDevice(){try{const d=(await api('/me/player/devices')).devices||[];return d.find(x=>x.id!==PB.sdkId&&x.is_active)||d.find(x=>x.id!==PB.sdkId&&x.type==='Smartphone')||null}catch{return null}}
+async function sdkOn(){if(!PB.sdk)return false;if(PB.sdkConnected&&PB.sdkId)return true;try{PB.sdkId=null;await PB.sdk.connect();for(let i=0;i<20&&!PB.sdkId;i++)await sleep(200)}catch{}return!!PB.sdkId}
+function sdkOff(){if(PB.sdk&&PB.sdkConnected){try{PB.sdk.disconnect()}catch{}PB.sdkConnected=false;PB.sdkId=null}}
 async function ensureDevice(){if(wantApp()){const a=await appDevice();if(a){PB.deviceId=a.id;return a.id}
     if(!PB.askedApp){PB.askedApp=true;toast('Per la cover sul blocco schermo apri Spotify una volta, poi torna qui','spotify',8000,{label:'Apri Spotify',fn:()=>{location.href='spotify:'}})}
-    if(PB.sdkId){PB.deviceId=PB.sdkId;return PB.sdkId}}
-  if(PB.deviceId)return PB.deviceId;try{const d=await api('/me/player/devices');const a=(d.devices||[]).find(x=>x.is_active)||(d.devices||[])[0];if(a){PB.deviceId=a.id;return a.id}}catch{}return null}
-async function playBody(body){try{PB.sdk&&PB.sdk.activateElement&&PB.sdk.activateElement()}catch{}
-  const dev=await ensureDevice();if(!dev){toast('Nessun dispositivo: apri Spotify o attendi il player','devices',4500);return}
-  try{await api('/me/player/play?device_id='+dev,{method:'PUT',body})}catch(e){if(e.status===404){PB.deviceId=null;toast('Dispositivo non trovato, scegline un altro','devices')}else if(e.status===403)toast('Serve Spotify Premium per la riproduzione','alert',5000);else toast(e.message,'alert')}}
+    if(await sdkOn()){PB.deviceId=PB.sdkId;return PB.sdkId}}
+  if(PB.deviceId&&(PB.deviceId!==PB.sdkId||PB.sdkConnected))return PB.deviceId;
+  if(!wantApp()&&await sdkOn()){PB.deviceId=PB.sdkId;return PB.sdkId}
+  try{const d=await api('/me/player/devices');const a=(d.devices||[]).find(x=>x.is_active)||(d.devices||[])[0];if(a){PB.deviceId=a.id;return a.id}}catch{}return null}
+async function playBody(body){const dev=await ensureDevice();if(!dev){toast('Nessun dispositivo: apri Spotify o attendi il player','devices',4500);return}
+  if(dev===PB.sdkId){try{PB.sdk.activateElement&&PB.sdk.activateElement()}catch{}}
+  try{await api('/me/player/play?device_id='+dev,{method:'PUT',body});
+    if(dev!==PB.sdkId){sdkOff();if(!PB.toldDev){PB.toldDev=true;appDevice().then(a=>a&&toast('Suona sull\'app Spotify · '+a.name,'spotify'))}setTimeout(pollRemote,900)}}
+  catch(e){if(e.status===404){PB.deviceId=null;toast('Dispositivo non trovato, riprova','devices')}else if(e.status===403)toast('Serve Spotify Premium per la riproduzione','alert',5000);else toast(e.message,'alert')}}
+/* all'avvio o al ritorno: se suona nel browser ma c'è l'app Spotify, sposta lì */
+async function moveToApp(){if(!wantApp()||!tok)return;try{const p=await api('/me/player');const a=await appDevice();if(!a)return;
+  if(p&&p.device&&p.device.id===a.id){PB.deviceId=a.id;sdkOff();return}
+  if(p&&p.device&&(p.device.id===PB.sdkId||/meteora/i.test(p.device.name||''))){await api('/me/player',{method:'PUT',body:{device_ids:[a.id],play:!!p.is_playing}});PB.deviceId=a.id;sdkOff();toast('Spostato sull\'app Spotify · '+a.name,'spotify')}}catch{}}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(moveToApp,800)});
 async function playList(tracks,i,label){Object.assign(Q,{mode:'list',list:tracks,idx:i,mood:null,ctxLabel:label||''});sessionPlayed.add(tracks[i].id);
   const s=Math.max(0,i-20),slice=tracks.slice(s,s+60);await playBody({uris:slice.map(t=>t.uri),offset:{position:i-s}})}
 async function playContext(uri,label,offUri){Object.assign(Q,{mode:'context',list:[],idx:-1,mood:null,ctxLabel:label||'',ctxUri:uri});await playBody({context_uri:uri,...(offUri?{offset:{uri:offUri}}:{})})}
@@ -735,7 +746,7 @@ async function togglePlay(){try{PB.sdk&&PB.sdk.activateElement&&PB.sdk.activateE
 async function seek(ms){if(isSdk())await PB.sdk.seek(ms);else{try{await api(`/me/player/seek?position_ms=${Math.round(ms)}&device_id=${PB.deviceId}`,{method:'PUT'})}catch{}}if(PB.st){PB.st.pos=ms;PB.st.at=performance.now()}}
 async function setVol(v){PB.vol=v;cfg.vol=Math.round(v*100);saveCfg();if(isSdk())PB.sdk.setVolume(v);else if(PB.deviceId){clearTimeout(PB.vt);PB.vt=setTimeout(()=>api(`/me/player/volume?volume_percent=${Math.round(v*100)}&device_id=${PB.deviceId}`,{method:'PUT'}).catch(()=>{}),250)}
   $('#bMute').innerHTML=ic(v===0?'volumeMute':'volume');$('#bMute').dataset.ic=v===0?'volumeMute':'volume'}
-const isSdk=()=>PB.sdk&&PB.deviceId&&PB.deviceId===PB.sdkId;
+const isSdk=()=>PB.sdk&&PB.sdkConnected&&PB.deviceId&&PB.deviceId===PB.sdkId;
 const curPos=()=>{const s=PB.st;if(!s)return 0;return s.paused?s.pos:Math.min(s.dur,s.pos+(performance.now()-s.at))};
 function onState(ns){const old=PB.st;
   if(Q.mode==='meteo'&&old&&!PB.userPaused&&!PB.adv){const cur=Q.list[Q.idx];const near=cur&&old.id===cur.id&&old.dur-curPos()<3000;
@@ -746,19 +757,19 @@ function sdkState(s){if(!s){onState(null);return}const t=s.track_window.current_
 async function pollRemote(){if(isSdk()||document.hidden||!tok)return;try{const p=await api('/me/player');if(!p||!p.item){return}
   if(p.device?.id)PB.deviceId=p.device.id;const t=p.item;onState({id:t.id,uri:t.uri,name:t.name,artists:(t.artists||[]).map(a=>({id:a.id,name:a.name})),img:pickImg(t.album?.images,300),imgL:pickImg(t.album?.images,640),album:t.album?.name||'',dur:t.duration_ms,pos:p.progress_ms||0,paused:!p.is_playing,at:performance.now()})}catch{}}
 function initSDK(){if(PB.sdk)return;window.onSpotifyWebPlaybackSDKReady=()=>{const p=new Spotify.Player({name:'Meteora',getOAuthToken:cb=>token().then(t=>t&&cb(t)),volume:PB.vol});
-  p.addListener('ready',({device_id})=>{PB.sdkId=device_id;if(!wantApp()&&(!PB.deviceId||!PB.st))PB.deviceId=device_id;toast('Player Meteora pronto','music')});
-  p.addListener('not_ready',()=>{if(PB.deviceId===PB.sdkId)PB.deviceId=null});
+  p.addListener('ready',({device_id})=>{PB.sdkId=device_id;PB.sdkConnected=true;if(!wantApp()&&(!PB.deviceId||!PB.st))PB.deviceId=device_id;if(!wantApp())toast('Player Meteora pronto','music')});
+  p.addListener('not_ready',()=>{if(PB.deviceId===PB.sdkId)PB.deviceId=null;PB.sdkConnected=false});
   p.addListener('player_state_changed',s=>{if(PB.deviceId===PB.sdkId)sdkState(s)});
   p.addListener('account_error',()=>toast('Il player nel browser richiede Spotify Premium','alert',6000));
   p.addListener('authentication_error',()=>toast('Errore di autenticazione del player','alert'));
   p.addListener('initialization_error',e=>toast('Player non supportato: '+e.message,'alert'));
-  p.connect();PB.sdk=p};
+  PB.sdk=p;if(!wantApp())p.connect()};
   const s=document.createElement('script');s.src='https://sdk.scdn.co/spotify-player.js';document.head.appendChild(s);
   clearInterval(PB.poll);PB.poll=setInterval(pollRemote,3000)}
 async function devicesMenu(){const b=$('#bDev').getBoundingClientRect();let list=[];try{list=(await api('/me/player/devices')).devices||[]}catch(e){toast(e.message,'alert');return}
-  if(PB.sdkId&&!list.some(d=>d.id===PB.sdkId))list.unshift({id:PB.sdkId,name:'Meteora (questo browser)'});
+  if(PB.sdk&&!list.some(d=>d.id===PB.sdkId))list.unshift({id:PB.sdkId||'__sdk',name:'Meteora (questo browser)'});
   if(!list.length){toast('Nessun dispositivo trovato','devices');return}
-  menu(b.left-180,b.top-10-list.length*40-40,[{h:'Riproduci su'},...list.map(d=>({label:d.name+(d.id===PB.sdkId?'':' · '+(d.type||'')),icon:'devices',on:d.id===PB.deviceId,act:async()=>{try{await api('/me/player',{method:'PUT',body:{device_ids:[d.id],play:PB.st?!PB.st.paused:false}});PB.deviceId=d.id;toast('Ora su '+d.name,'devices')}catch(e){toast(e.message,'alert')}}}))])}
+  menu(b.left-180,b.top-10-list.length*40-40,[{h:'Riproduci su'},...list.map(d=>({label:d.name+(d.id===PB.sdkId?'':' · '+(d.type||'')),icon:'devices',on:d.id===PB.deviceId,act:async()=>{try{let id=d.id;if(id==='__sdk'||id===PB.sdkId){if(!await sdkOn())throw new Error('Player del browser non disponibile');id=PB.sdkId}await api('/me/player',{method:'PUT',body:{device_ids:[id],play:PB.st?!PB.st.paused:false}});PB.deviceId=id;if(id!==PB.sdkId)sdkOff();toast('Ora su '+d.name,'devices')}catch(e){toast(e.message,'alert')}}}))])}
 /* preferiti di Spotify */
 async function checkLiked(id){if(PB.liked.has(id))return setLikeBtn(id);try{let r;try{r=await api('/me/library/contains?uris='+encodeURIComponent('spotify:track:'+id))}catch{r=await api('/me/tracks/contains?ids='+id)}PB.liked.set(id,!!(r&&r[0]))}catch{}setLikeBtn(id)}
 function setLikeBtn(id){if(PB.st?.id!==id)return;$('#bLike').classList.toggle('liked',!!PB.liked.get(id));const f=$('#fLike');if(f)f.classList.toggle('liked',!!PB.liked.get(id))}
@@ -1004,7 +1015,7 @@ function showOnboard(){const o=$('#onb');o.classList.add('on');const fileMode=lo
 
 
 /* ---------- aggiornamenti automatici ---------- */
-const APP_VER='2026.10.10-11';let updShown=false;
+const APP_VER='2026.10.10-12';let updShown=false;
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 async function checkUpdate(manual){if(location.protocol==='file:')return'err';try{const j=await(await fetch('version.json?t='+Date.now(),{cache:'no-store'})).json();if(!j.v||j.v===APP_VER)return'same';
   const go=()=>{LS.set('mt_updated',j.v);location.reload()};if(manual||!PB.st||PB.st.paused){setTimeout(go,manual?600:0);return'new'}
@@ -1018,7 +1029,7 @@ async function loadLibrary(){const g=p=>api(p).catch(()=>null);
   D.loaded=true;if(!D.topS.length&&!D.saved.length&&!D.recent.length)toast('Pochi dati d\'ascolto: il mix userà soprattutto scoperte','music',5000);
   if(curView==='home')renderHome();if(curView==='library')renderLibrary()}
 async function startApp(){$('#onb').classList.remove('on');try{D.me=await api('/me')}catch(e){if(e.status===403)toast('Account non abilitato: aggiungilo agli utenti dell\'app Spotify','alert',7000);showOnboard();return}
-  renderUser();initSDK();show('home');loadLibrary();setVol(PB.vol)}
+  renderUser();initSDK();show('home');loadLibrary();setVol(PB.vol);setTimeout(moveToApp,1500)}
 (async function boot(){applyTheme();FX.init();applyFx();buildShell();setMood(cfg.sim||WX.mood);show('home');
   await handleCallback();loadWeather();scheduleWeather();
   if(!cfg.clientId||!tok)showOnboard();else startApp();const up=LS.get('mt_updated',null);if(up){LS.del('mt_updated');setTimeout(()=>toast('Meteora aggiornata alla versione '+APP_VER,'sparkle',4500),900)}checkUpdate()})();
