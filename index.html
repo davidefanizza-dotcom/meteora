@@ -534,7 +534,7 @@ function moodFrom({code,isDay,temp,wind}){
 }
 
 /* ---------- configurazione persistente ---------- */
-const DEF={clientId:'',theme:'dark',fx:{weather:true,trans:true,cascade:true,icons:true,blur:true,liquid:true,tilt:false},loc:{mode:'auto',name:'Calimera',lat:40.25,lon:18.28},auto:true,interval:10,mix:70,sim:null,vol:60};
+const DEF={clientId:'',theme:'dark',fx:{weather:true,trans:true,cascade:true,icons:true,blur:true,liquid:true,tilt:false},loc:{mode:'auto',name:'Calimera',lat:40.25,lon:18.28},auto:true,interval:10,mix:70,sim:null,vol:60,out:'auto'};
 const saved=LS.get('mt_cfg',{});
 const cfg=Object.assign({},DEF,saved);cfg.fx=Object.assign({},DEF.fx,saved.fx);cfg.loc=Object.assign({},DEF.loc,saved.loc);
 const saveCfg=()=>LS.set('mt_cfg',cfg);
@@ -711,7 +711,13 @@ async function startMix(){if(!D.loaded){toast('Sto ancora caricando la tua music
 async function adaptQueue(m){try{const ex=new Set(Q.list.slice(0,Q.idx+1).map(t=>t.id));const l=await buildMix(m,40,ex);Q.list=Q.list.slice(0,Q.idx+1).concat(l);Q.mood=m;Q.ctxLabel='Meteo Mix · '+MOODS[m].nome;renderMixList();renderNow()}catch(e){toast(e.message,'alert')}}
 async function regenMix(){if(Q.mode!=='meteo'){startMix();return}await adaptQueue(WX.mood);toast('Coda rigenerata per '+MOODS[WX.mood].nome,'refresh')}
 async function playAt(i){const t=Q.list[i];if(!t)return;Q.idx=i;sessionPlayed.add(t.id);PB.userPaused=false;await playBody({uris:[t.uri]});renderMixList()}
-async function ensureDevice(){if(PB.deviceId)return PB.deviceId;try{const d=await api('/me/player/devices');const a=(d.devices||[]).find(x=>x.is_active)||(d.devices||[])[0];if(a){PB.deviceId=a.id;return a.id}}catch{}return null}
+const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const wantApp=()=>cfg.out==='app'||(cfg.out==='auto'&&isIOS);
+async function appDevice(){try{const d=(await api('/me/player/devices')).devices||[];return d.find(x=>x.id!==PB.sdkId&&x.is_active)||d.find(x=>x.id!==PB.sdkId&&x.type==='Smartphone')||null}catch{return null}}
+async function ensureDevice(){if(wantApp()){const a=await appDevice();if(a){PB.deviceId=a.id;return a.id}
+    if(!PB.askedApp){PB.askedApp=true;toast('Per la cover sul blocco schermo apri Spotify una volta, poi torna qui','spotify',8000,{label:'Apri Spotify',fn:()=>{location.href='spotify:'}})}
+    if(PB.sdkId){PB.deviceId=PB.sdkId;return PB.sdkId}}
+  if(PB.deviceId)return PB.deviceId;try{const d=await api('/me/player/devices');const a=(d.devices||[]).find(x=>x.is_active)||(d.devices||[])[0];if(a){PB.deviceId=a.id;return a.id}}catch{}return null}
 async function playBody(body){try{PB.sdk&&PB.sdk.activateElement&&PB.sdk.activateElement()}catch{}
   const dev=await ensureDevice();if(!dev){toast('Nessun dispositivo: apri Spotify o attendi il player','devices',4500);return}
   try{await api('/me/player/play?device_id='+dev,{method:'PUT',body})}catch(e){if(e.status===404){PB.deviceId=null;toast('Dispositivo non trovato, scegline un altro','devices')}else if(e.status===403)toast('Serve Spotify Premium per la riproduzione','alert',5000);else toast(e.message,'alert')}}
@@ -740,7 +746,7 @@ function sdkState(s){if(!s){onState(null);return}const t=s.track_window.current_
 async function pollRemote(){if(isSdk()||document.hidden||!tok)return;try{const p=await api('/me/player');if(!p||!p.item){return}
   if(p.device?.id)PB.deviceId=p.device.id;const t=p.item;onState({id:t.id,uri:t.uri,name:t.name,artists:(t.artists||[]).map(a=>({id:a.id,name:a.name})),img:pickImg(t.album?.images,300),imgL:pickImg(t.album?.images,640),album:t.album?.name||'',dur:t.duration_ms,pos:p.progress_ms||0,paused:!p.is_playing,at:performance.now()})}catch{}}
 function initSDK(){if(PB.sdk)return;window.onSpotifyWebPlaybackSDKReady=()=>{const p=new Spotify.Player({name:'Meteora',getOAuthToken:cb=>token().then(t=>t&&cb(t)),volume:PB.vol});
-  p.addListener('ready',({device_id})=>{PB.sdkId=device_id;if(!PB.deviceId||!PB.st)PB.deviceId=device_id;toast('Player Meteora pronto','music')});
+  p.addListener('ready',({device_id})=>{PB.sdkId=device_id;if(!wantApp()&&(!PB.deviceId||!PB.st))PB.deviceId=device_id;toast('Player Meteora pronto','music')});
   p.addListener('not_ready',()=>{if(PB.deviceId===PB.sdkId)PB.deviceId=null});
   p.addListener('player_state_changed',s=>{if(PB.deviceId===PB.sdkId)sdkState(s)});
   p.addListener('account_error',()=>toast('Il player nel browser richiede Spotify Premium','alert',6000));
@@ -950,6 +956,7 @@ async function openSaved(){const head={kind:'Raccolta',icon:'heart',title:'Brani
 /* ---------- Impostazioni ---------- */
 function openSettings(){const ov=modal(`<div class="mhd"><h2>Impostazioni</h2><button class="ib" data-close data-ic="close">${ic('close')}</button></div>
   <div class="set"><h4>Spotify</h4><div class="srow"><div><b>${D.me?esc(D.me.display_name||D.me.id):'Non collegato'}</b><span>${D.me?'Account collegato':'Collega il tuo account Spotify Premium'}</span></div>${D.me?`<button class="btn" id="stOut" data-ic="logout">${ic('logout')} Esci</button>`:`<button class="btn pri" id="stIn">${ic('spotify')} Collega</button>`}</div>
+   <div class="srow"><div><b>Riproduci su</b><span>L'app Spotify mostra la cover nella Dynamic Island</span></div><span id="stOut2"></span></div>
    <div class="srow" style="flex-direction:column;align-items:stretch"><div><b>Client ID</b><span>Dalla tua app su developer.spotify.com</span></div><div class="field">${ic('spotify')}<input id="stCid" value="${esc(cfg.clientId)}" placeholder="Incolla il Client ID" spellcheck="false"></div></div>
    <div class="srow" style="flex-direction:column;align-items:stretch"><div><b>Redirect URI da registrare</b><span>Copiala nelle impostazioni dell'app Spotify</span></div><div style="display:flex;gap:8px;align-items:center"><div class="code">${esc(REDIRECT)}</div><button class="ib" id="stCopy" data-ic="copy">${ic('copy')}</button></div></div></div>
   <div class="set"><h4>Posizione</h4><div class="srow"><div><b>Usa la mia posizione</b><span>${esc(cfg.loc.name)}</span></div><span id="stGeo"></span></div>
@@ -971,6 +978,9 @@ function openSettings(){const ov=modal(`<div class="mhd"><h2>Impostazioni</h2><b
   const ci=$('#stCity',m);let ct=0;ci.oninput=()=>{clearTimeout(ct);ct=setTimeout(async()=>{if(ci.value.trim().length<2)return;try{const j=await(await fetch('https://geocoding-api.open-meteo.com/v1/search?count=6&language=it&name='+encodeURIComponent(ci.value.trim()))).json();const r=ci.getBoundingClientRect();
     menu(r.left,r.bottom+6,(j.results||[]).length?j.results.map(c=>({label:`${c.name}${c.admin1?', '+c.admin1:''} (${c.country_code||''})`,icon:'pin',act:()=>{Object.assign(cfg.loc,{mode:'manual',name:c.name,lat:c.latitude,lon:c.longitude});saveCfg();ci.value=c.name;toast('Posizione: '+c.name,'pin');loadWeather()}})):[{h:'Nessuna città trovata'}],r.width)}catch{toast('Ricerca città non disponibile','alert')}},350)};
   toggle($('#stAuto',m),cfg.auto,on=>{cfg.auto=on;saveCfg()});
+  dropdown($('#stOut2',m),[{v:'auto',l:isIOS?'Automatico (app Spotify)':'Automatico (browser)',i:'sparkle'},{v:'app',l:'App Spotify',i:'spotify'},{v:'browser',l:'Questo browser',i:'devices'}],cfg.out||'auto',async v=>{cfg.out=v;saveCfg();PB.askedApp=false;
+    if(wantApp()){const a=await appDevice();if(a&&PB.st){try{await api('/me/player',{method:'PUT',body:{device_ids:[a.id],play:!PB.st.paused}});PB.deviceId=a.id;toast('Ora suona su '+a.name,'spotify')}catch{}}else if(!a)toast('Apri l\'app Spotify sul telefono per collegarla','spotify')}
+    else if(PB.sdkId&&PB.st){try{await api('/me/player',{method:'PUT',body:{device_ids:[PB.sdkId],play:!PB.st.paused}});PB.deviceId=PB.sdkId;toast('Ora suona in Meteora','devices')}catch{}}});
   dropdown($('#stInt',m),[5,10,15,30,60].map(n=>({v:n,l:n<60?n+' minuti':'1 ora'})),cfg.interval,v=>{cfg.interval=v;saveCfg();scheduleWeather()});
   slider($('#stMix',m),{value:cfg.mix/100,onInput:v=>{cfg.mix=Math.round(v*20)*5;$('#stMixL',m).textContent=`${cfg.mix}% dai tuoi gusti · ${100-cfg.mix}% nuove scoperte`},onChange:()=>saveCfg()});
   dropdown($('#stSim',m),[{v:'',l:'Reale',i:'pin'},...MOOD_ORDER.map(k=>({v:k,l:MOODS[k].nome,i:k,wi:1}))],cfg.sim||'',v=>{cfg.sim=v||null;saveCfg();setMood(cfg.sim||WX.real)});
@@ -994,7 +1004,7 @@ function showOnboard(){const o=$('#onb');o.classList.add('on');const fileMode=lo
 
 
 /* ---------- aggiornamenti automatici ---------- */
-const APP_VER='2026.10.10-10';let updShown=false;
+const APP_VER='2026.10.10-11';let updShown=false;
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 async function checkUpdate(manual){if(location.protocol==='file:')return'err';try{const j=await(await fetch('version.json?t='+Date.now(),{cache:'no-store'})).json();if(!j.v||j.v===APP_VER)return'same';
   const go=()=>{LS.set('mt_updated',j.v);location.reload()};if(manual||!PB.st||PB.st.paused){setTimeout(go,manual?600:0);return'new'}
