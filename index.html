@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Meteora</title>
 <meta name="theme-color" content="#0b0d12">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Meteora">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -32,7 +39,7 @@ img{display:block}
 .noblur{--blur:0px}
 .noblur .glass{background:var(--glass3)}
 /* layout */
-#app{position:relative;z-index:2;display:grid;grid-template-columns:236px 1fr;grid-template-rows:1fr auto;height:100%;gap:12px;padding:12px}
+#app{position:relative;z-index:2;display:grid;grid-template-columns:236px 1fr;grid-template-rows:1fr auto;height:100%;gap:12px;padding:12px;padding-top:max(12px,env(safe-area-inset-top))}
 #side{grid-row:1;display:flex;flex-direction:column;gap:6px;padding:18px 12px}
 .brand{display:flex;align-items:center;gap:10px;padding:4px 10px 18px;font-weight:800;font-size:20px;letter-spacing:-.02em}
 .brand .logo{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;box-shadow:0 6px 18px color-mix(in srgb,var(--acc) 45%,transparent)}
@@ -278,7 +285,7 @@ h3{font-size:16px;font-weight:700;margin-bottom:12px;display:flex;align-items:ce
 .warn{padding:12px 14px;border-radius:12px;background:rgba(255,170,40,.13);color:#ffb84d;font-size:13px;font-weight:600;margin-top:10px;display:flex;gap:8px}
 .warn svg{width:18px;height:18px;flex:none}
 /* toast */
-#toasts{position:fixed;z-index:120;top:18px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+#toasts{position:fixed;z-index:120;top:max(18px,calc(env(safe-area-inset-top) + 8px));left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
 .toast{display:flex;align-items:center;gap:10px;padding:11px 16px;border-radius:14px;background:var(--glass3);border:1px solid var(--line);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 14px 40px rgba(0,0,0,.4);font-weight:600;font-size:13px;animation:tIn .45s cubic-bezier(.2,.9,.25,1.2);pointer-events:auto;max-width:90vw}
 .toast svg{width:18px;height:18px;color:var(--acc);flex:none}
 .toast.out{animation:tOut .3s forwards}
@@ -343,7 +350,7 @@ h3{font-size:16px;font-weight:700;margin-bottom:12px;display:flex;align-items:ce
 /* mobile */
 .mob-play{display:none!important}
 @media (max-width:820px){
-#app{grid-template-columns:1fr;grid-template-rows:1fr auto auto;padding:8px;gap:8px;padding-bottom:max(8px,env(safe-area-inset-bottom))}
+#app{grid-template-columns:1fr;grid-template-rows:1fr auto auto;padding:8px;gap:8px;padding-top:max(8px,env(safe-area-inset-top));padding-bottom:max(8px,env(safe-area-inset-bottom))}
 #side{grid-row:3;flex-direction:row;padding:6px;justify-content:space-around;gap:0}
 .brand,.side-w,.user{display:none}
 .nav{flex-direction:column;gap:3px;font-size:10.5px;padding:7px 10px}
@@ -509,7 +516,7 @@ let learn=LS.get('mt_learn',{});
 const saveLearn=()=>LS.set('mt_learn',learn);
 
 /* ---------- toast / modali / menu ---------- */
-function toast(msg,icon='check',ms=3200){const t=document.createElement('div');t.className='toast';t.innerHTML=ic(icon)+'<span>'+esc(msg)+'</span>';$('#toasts').appendChild(t);setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),320)},ms)}
+function toast(msg,icon='check',ms=3200,action){const t=document.createElement('div');t.className='toast';t.innerHTML=ic(icon)+'<span>'+esc(msg)+'</span>'+(action?`<button class="btn pri" style="padding:6px 12px;font-size:12px;margin-left:6px">${esc(action.label)}</button>`:'');$('#toasts').appendChild(t);const out=()=>{t.classList.add('out');setTimeout(()=>t.remove(),320)};if(action)$('button',t).onclick=()=>{out();action.fn()};if(ms)setTimeout(out,ms);return t}
 function modal(html,cls=''){const ov=document.createElement('div');ov.className='ov';ov.innerHTML=`<div class="modal ${cls}">${html}</div>`;document.body.appendChild(ov);
   const close=()=>{if(ov._c)return;ov._c=1;ov.classList.add('out');document.removeEventListener('keydown',k);setTimeout(()=>ov.remove(),220)};
   const k=e=>{if(e.key==='Escape')close()};document.addEventListener('keydown',k);
@@ -927,6 +934,14 @@ function showOnboard(){const o=$('#onb');o.classList.add('on');const fileMode=lo
   $('#oCopy').onclick=()=>navigator.clipboard?.writeText(REDIRECT).then(()=>toast('Redirect URI copiata','copy'));
   $('#oGo').onclick=()=>{cfg.clientId=$('#oCid').value.trim();saveCfg();login()}}
 
+
+/* ---------- aggiornamenti automatici ---------- */
+const APP_VER='2026.10.10-5';let updShown=false;
+if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+async function checkUpdate(){if(location.protocol==='file:')return;try{const j=await(await fetch('version.json?t='+Date.now(),{cache:'no-store'})).json();if(!j.v||j.v===APP_VER)return;
+  const go=()=>location.reload();if(!PB.st||PB.st.paused){go();return}
+  if(!updShown){updShown=true;toast('Nuova versione di Meteora disponibile','refresh',0,{label:'Aggiorna',fn:go})}}catch{}}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setInterval(checkUpdate,15*60000);
 /* ---------- avvio ---------- */
 async function loadLibrary(){const g=p=>api(p).catch(()=>null);
   const[a,s,m,sv,r,pl]=await Promise.all([g('/me/top/artists?limit=20&time_range=short_term'),g('/me/top/tracks?limit=50&time_range=short_term'),g('/me/top/tracks?limit=50&time_range=medium_term'),g('/me/tracks?limit=50'),g('/me/player/recently-played?limit=50'),g('/me/playlists?limit=50')]);
@@ -938,7 +953,7 @@ async function startApp(){$('#onb').classList.remove('on');try{D.me=await api('/
   renderUser();initSDK();show('home');loadLibrary();setVol(PB.vol)}
 (async function boot(){applyTheme();FX.init();applyFx();buildShell();setMood(cfg.sim||WX.mood);show('home');
   await handleCallback();loadWeather();scheduleWeather();
-  if(!cfg.clientId||!tok)showOnboard();else startApp()})();
+  if(!cfg.clientId||!tok)showOnboard();else startApp();checkUpdate()})();
 </script>
 </body>
 </html>
