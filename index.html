@@ -960,7 +960,8 @@ function openSettings(){const ov=modal(`<div class="mhd"><h2>Impostazioni</h2><b
    <div class="srow"><div><b>Meteo</b><span>Usa il meteo reale o simulane uno</span></div><span id="stSim"></span></div></div>
   <div class="set"><h4>Aspetto</h4><div class="srow"><div><b>Tema</b></div><div class="seg" id="stTheme">${[['dark','Scuro'],['light','Chiaro'],['system','Sistema']].map(([k,l])=>`<button data-t="${k}" class="${cfg.theme===k?'on':''}">${l}</button>`).join('')}</div></div>
    ${[['weather','Animazione meteo di sfondo','Pioggia, neve, stelle sullo sfondo'],['trans','Transizioni','Passaggi morbidi tra le schermate'],['cascade','Entrata a cascata','Gli elementi compaiono uno dopo l\'altro'],['icons','Icone animate','Micro-animazioni delle icone'],['blur','Effetto vetro','Sfocatura dei pannelli'],['liquid','Liquid Glass','Riflessi sui bordi, luce viva e pulsanti morbidi'],['tilt','Luce con l\'inclinazione','Il riflesso segue il movimento del telefono']].map(([k,b,s])=>`<div class="srow"><div><b>${b}</b><span>${s}</span></div><span data-fx="${k}"></span></div>`).join('')}</div>
-  <div class="set"><h4>Dati</h4><div class="srow"><div><b>Gusti per meteo</b><span>${Object.values(learn).reduce((a,o)=>a+Object.keys(o).filter(k=>k.startsWith('t:')).length,0)} brani imparati</span></div><div style="display:flex;gap:6px"><button class="ib" id="stExp" data-ic="download" title="Esporta">${ic('download')}</button><button class="ib" id="stImp" data-ic="upload" title="Importa">${ic('upload')}</button><button class="ib" id="stRst" data-ic="trash" title="Azzera">${ic('trash')}</button></div></div></div>`);
+  <div class="set"><h4>Dati</h4><div class="srow"><div><b>Gusti per meteo</b><span>${Object.values(learn).reduce((a,o)=>a+Object.keys(o).filter(k=>k.startsWith('t:')).length,0)} brani imparati</span></div><div style="display:flex;gap:6px"><button class="ib" id="stExp" data-ic="download" title="Esporta">${ic('download')}</button><button class="ib" id="stImp" data-ic="upload" title="Importa">${ic('upload')}</button><button class="ib" id="stRst" data-ic="trash" title="Azzera">${ic('trash')}</button></div></div></div>
+  <div class="set"><h4>App</h4><div class="srow"><div><b>Versione ${APP_VER}</b><span id="stVerS">Gli aggiornamenti arrivano da soli</span></div><button class="btn" id="stUpd" data-ic="refresh">${ic('refresh')} Controlla</button></div></div>`);
   const m=$('.modal',ov);
   $('#stCid',m).onchange=e=>{cfg.clientId=e.target.value.trim();saveCfg();toast('Client ID salvato')};
   $('#stCopy',m).onclick=()=>{navigator.clipboard?.writeText(REDIRECT).then(()=>toast('Redirect URI copiata','copy'))};
@@ -977,6 +978,7 @@ function openSettings(){const ov=modal(`<div class="mhd"><h2>Impostazioni</h2><b
   $$('[data-fx]',m).forEach(el=>{const k=el.dataset.fx;toggle(el,cfg.fx[k],async on=>{if(k==='tilt'&&on){const ok=await LIGHT.askTilt();if(!ok){el.setAttribute('aria-checked','false');toast('Permesso movimento negato','alert');return}}cfg.fx[k]=on;saveCfg();applyFx()})});
   $('#stExp',m).onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({meteora:1,learn,cfg:{...cfg,clientId:undefined}},null,2)],{type:'application/json'}));a.download='meteora-gusti.json';a.click();toast('Gusti esportati','download')};
   $('#stImp',m).onclick=()=>{const f=$('#fileIn');f.value='';f.onchange=async()=>{try{const j=JSON.parse(await f.files[0].text());if(!j.learn)throw 0;for(const[k,o]of Object.entries(j.learn))learn[k]=Object.assign(learn[k]||{},o);saveLearn();toast('Gusti importati','upload')}catch{toast('File non valido','alert')}};f.click()};
+  $('#stUpd',m).onclick=async e=>{const b=e.currentTarget;b.disabled=true;$('#stVerS',m).textContent='Controllo…';const r=await checkUpdate(true);b.disabled=false;$('#stVerS',m).textContent=r==='same'?'Hai già l\'ultima versione':r==='new'?'Aggiornamento trovato':'Impossibile controllare ora'};
   $('#stRst',m).onclick=async()=>{if(await confirmBox('Azzerare i gusti?','Meteora dimenticherà i 👍 e 👎 che hai dato per ogni meteo.','Azzera')){learn={};saveLearn();toast('Gusti azzerati','trash')}}}
 
 /* ---------- onboarding ---------- */
@@ -992,11 +994,11 @@ function showOnboard(){const o=$('#onb');o.classList.add('on');const fileMode=lo
 
 
 /* ---------- aggiornamenti automatici ---------- */
-const APP_VER='2026.10.10-9';let updShown=false;
+const APP_VER='2026.10.10-10';let updShown=false;
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
-async function checkUpdate(){if(location.protocol==='file:')return;try{const j=await(await fetch('version.json?t='+Date.now(),{cache:'no-store'})).json();if(!j.v||j.v===APP_VER)return;
-  const go=()=>location.reload();if(!PB.st||PB.st.paused){go();return}
-  if(!updShown){updShown=true;toast('Nuova versione di Meteora disponibile','refresh',0,{label:'Aggiorna',fn:go})}}catch{}}
+async function checkUpdate(manual){if(location.protocol==='file:')return'err';try{const j=await(await fetch('version.json?t='+Date.now(),{cache:'no-store'})).json();if(!j.v||j.v===APP_VER)return'same';
+  const go=()=>{LS.set('mt_updated',j.v);location.reload()};if(manual||!PB.st||PB.st.paused){setTimeout(go,manual?600:0);return'new'}
+  if(!updShown){updShown=true;toast('Nuova versione di Meteora disponibile','refresh',0,{label:'Aggiorna',fn:go})}return'new'}catch{return'err'}}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setInterval(checkUpdate,15*60000);
 /* ---------- avvio ---------- */
 async function loadLibrary(){const g=p=>api(p).catch(()=>null);
@@ -1009,7 +1011,7 @@ async function startApp(){$('#onb').classList.remove('on');try{D.me=await api('/
   renderUser();initSDK();show('home');loadLibrary();setVol(PB.vol)}
 (async function boot(){applyTheme();FX.init();applyFx();buildShell();setMood(cfg.sim||WX.mood);show('home');
   await handleCallback();loadWeather();scheduleWeather();
-  if(!cfg.clientId||!tok)showOnboard();else startApp();checkUpdate()})();
+  if(!cfg.clientId||!tok)showOnboard();else startApp();const up=LS.get('mt_updated',null);if(up){LS.del('mt_updated');setTimeout(()=>toast('Meteora aggiornata alla versione '+APP_VER,'sparkle',4500),900)}checkUpdate()})();
 </script>
 </body>
 </html>
