@@ -637,11 +637,13 @@ async function token(){if(!tok)return null;if(Date.now()<tok.exp-60000)return to
   if(!refreshing)refreshing=(async()=>{try{const r=await fetch('https://accounts.spotify.com/api/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:cfg.clientId,grant_type:'refresh_token',refresh_token:tok.refresh})});const j=await r.json();if(!r.ok)throw 0;setTok(j);return tok.access}catch{logout(true);return null}finally{refreshing=null}})();
   return refreshing}
 function logout(expired){tok=null;LS.del('mt_tok');try{PB.sdk&&PB.sdk.disconnect()}catch{}if(expired)toast('Sessione scaduta, ricollega Spotify','alert');showOnboard()}
-async function api(path,opt={}){const url=path.startsWith('http')?path:'https://api.spotify.com/v1'+path;
+const API={blockedUntil:0};
+async function api(path,opt={}){if(Date.now()<API.blockedUntil){const e=new Error(`Spotify ha limitato le richieste: riprova tra ${Math.ceil((API.blockedUntil-Date.now())/60000)} min`);e.status=429;throw e}const url=path.startsWith('http')?path:'https://api.spotify.com/v1'+path;
   for(let a=0;a<3;a++){const t=await token();if(!t){const e=new Error('Non collegato');e.status=401;throw e}
     const r=await fetch(url,{method:opt.method||'GET',headers:{Authorization:'Bearer '+t,...(opt.body?{'Content-Type':'application/json'}:{})},body:opt.body?JSON.stringify(opt.body):undefined});
     if(r.status===401){tok.exp=0;continue}
-    if(r.status===429){await sleep((+r.headers.get('Retry-After')||2)*1000);continue}
+    if(r.status===429){const ra=+r.headers.get('Retry-After')||2;if(ra<=8){await sleep(ra*1000);continue}
+      API.blockedUntil=Date.now()+ra*1000;const e=new Error(`Spotify ha limitato le richieste: riprova tra ${Math.ceil(ra/60)} min`);e.status=429;throw e}
     const txt=await r.text();let j=null;try{j=txt?JSON.parse(txt):null}catch{}
     if(!r.ok){const e=new Error(j?.error?.message||('Errore '+r.status));e.status=r.status;throw e}
     return j}
@@ -725,7 +727,7 @@ async function ensureDevice(){if(wantApp()){const a=await appDevice();if(a){PB.d
 async function playBody(body){const dev=await ensureDevice();if(!dev){toast('Nessun dispositivo: apri Spotify o attendi il player','devices',4500);return}
   if(dev===PB.sdkId){try{PB.sdk.activateElement&&PB.sdk.activateElement()}catch{}}
   try{await api('/me/player/play?device_id='+dev,{method:'PUT',body});
-    if(dev!==PB.sdkId){sdkOff();if(!PB.toldDev){PB.toldDev=true;appDevice().then(a=>a&&toast('Suona sull\'app Spotify · '+a.name,'spotify'))}setTimeout(pollRemote,900)}}
+    if(dev!==PB.sdkId){sdkOff();if(!PB.toldDev){PB.toldDev=true;appDevice().then(a=>a&&toast('Suona sull\'app Spotify · '+a.name,'spotify'))}setTimeout(()=>pollRemote(true),900)}}
   catch(e){if(e.status===404){PB.deviceId=null;toast('Dispositivo non trovato, riprova','devices')}else if(e.status===403)toast('Serve Spotify Premium per la riproduzione','alert',5000);else toast(e.message,'alert')}}
 /* all'avvio o al ritorno: se suona nel browser ma c'è l'app Spotify, sposta lì */
 async function moveToApp(){if(!wantApp()||!tok)return;try{const p=await api('/me/player');const a=await appDevice();if(!a)return;
@@ -754,7 +756,7 @@ function onState(ns){const old=PB.st;
   const chg=!old||!ns||old.id!==ns.id;PB.st=ns;renderNow(chg);markPlaying();mediaSession(chg);if(chg&&ns)checkLiked(ns.id)}
 function sdkState(s){if(!s){onState(null);return}const t=s.track_window.current_track;if(!t)return;
   onState({id:t.linked_from?.id||t.id,uri:t.uri,name:t.name,artists:t.artists.map(a=>({id:a.uri.split(':').pop(),name:a.name})),img:pickImg(t.album.images,300),imgL:pickImg(t.album.images,640),album:t.album.name,dur:s.duration,pos:s.position,paused:s.paused,at:performance.now()})}
-async function pollRemote(){if(isSdk()||document.hidden||!tok)return;try{const p=await api('/me/player');if(!p||!p.item){return}
+async function pollRemote(force){if(isSdk()||document.hidden||!tok||Date.now()<API.blockedUntil)return;const now=Date.now(),busy=PB.st&&!PB.st.paused;if(!force&&now-(PB.lastPoll||0)<(busy?4000:20000))return;PB.lastPoll=now;try{const p=await api('/me/player');if(!p||!p.item){return}
   if(p.device?.id)PB.deviceId=p.device.id;const t=p.item;onState({id:t.id,uri:t.uri,name:t.name,artists:(t.artists||[]).map(a=>({id:a.id,name:a.name})),img:pickImg(t.album?.images,300),imgL:pickImg(t.album?.images,640),album:t.album?.name||'',dur:t.duration_ms,pos:p.progress_ms||0,paused:!p.is_playing,at:performance.now()})}catch{}}
 function initSDK(){if(PB.sdk)return;window.onSpotifyWebPlaybackSDKReady=()=>{const p=new Spotify.Player({name:'Meteora',getOAuthToken:cb=>token().then(t=>t&&cb(t)),volume:PB.vol});
   p.addListener('ready',({device_id})=>{PB.sdkId=device_id;PB.sdkConnected=true;if(!wantApp()&&(!PB.deviceId||!PB.st))PB.deviceId=device_id;if(!wantApp())toast('Player Meteora pronto','music')});
@@ -765,7 +767,7 @@ function initSDK(){if(PB.sdk)return;window.onSpotifyWebPlaybackSDKReady=()=>{con
   p.addListener('initialization_error',e=>toast('Player non supportato: '+e.message,'alert'));
   PB.sdk=p;if(!wantApp())p.connect()};
   const s=document.createElement('script');s.src='https://sdk.scdn.co/spotify-player.js';document.head.appendChild(s);
-  clearInterval(PB.poll);PB.poll=setInterval(pollRemote,3000)}
+  clearInterval(PB.poll);PB.poll=setInterval(()=>pollRemote(),2000)}
 async function devicesMenu(){const b=$('#bDev').getBoundingClientRect();let list=[];try{list=(await api('/me/player/devices')).devices||[]}catch(e){toast(e.message,'alert');return}
   if(PB.sdk&&!list.some(d=>d.id===PB.sdkId))list.unshift({id:PB.sdkId||'__sdk',name:'Meteora (questo browser)'});
   if(!list.length){toast('Nessun dispositivo trovato','devices');return}
@@ -848,7 +850,7 @@ async function loadSpQueue(id){try{const j=await api('/me/player/queue');if(FULL
     if(Q.mode==='context'&&Q.ctxUri)return playContext(Q.ctxUri,Q.ctxLabel,t.uri);return playBody({uris:[t.uri]})}})}catch{}}
 function tickFull(){if(!fullOpen()||!PB.st||!FULL.prog)return;const p=curPos(),s=PB.st;if(!FULL.prog.dragging){FULL.prog.set(s.dur?p/s.dur:0);const c=$('#fCur');if(c)c.textContent=fmt(p)}}
 function tick(){const s=PB.st;if(!s||document.hidden)return;if(s.paused&&PB._lastTick===s.pos)return;PB._lastTick=s.pos;const p=curPos();tickFull();if(!PB.prog.dragging){PB.prog.set(s.dur?p/s.dur:0);$('#tCur').textContent=fmt(p)}
-  if(!s.paused&&Q.mode==='meteo'&&!PB.adv&&!isSdk()&&s.dur&&p>=s.dur-400){/* fine brano su dispositivo remoto */setTimeout(pollRemote,800)}}
+  if(!s.paused&&Q.mode==='meteo'&&!PB.adv&&!isSdk()&&s.dur&&p>=s.dur-400){/* fine brano su dispositivo remoto */setTimeout(()=>pollRemote(true),800)}}
 function renderNow(chg){const s=PB.st,n=$('#now');const playing=s&&!s.paused;
   $('#bPlay').innerHTML=ic(playing?'pause':'play');$('#bPlayM').innerHTML=ic(playing?'pause':'play');
   if(!s){n.innerHTML=`<div class="cov" style="display:grid;place-items:center;color:var(--tx3)">${ic('music')}</div><div class="tt"><b>Niente in riproduzione</b><span>Avvia il Meteo Mix o scegli un brano</span></div>`;$('#tDur').textContent='0:00';$('#tCur').textContent='0:00';PB.prog.set(0);return}
@@ -948,9 +950,10 @@ function renderLibrary(){const v=$('#v-library');const f=cfg.libF||'all';
   v.innerHTML=`<div class="sec-h" style="flex-wrap:wrap;gap:12px"><h1>Libreria</h1><div class="seg" id="libF">${[['all','Tutte'],['mine','Create da te'],['follow','Seguite']].map(([k,l])=>`<button data-f="${k}" class="${f===k?'on':''}">${l}</button>`).join('')}</div></div><div class="sec" id="lib" style="margin-top:14px">${D.loaded?'':skCards(6)}</div>`;
   $$('#libF button',v).forEach(b=>b.onclick=()=>{cfg.libF=b.dataset.f;saveCfg();renderLibrary()});if(!D.loaded)return;
   const pls=D.playlists.filter(p=>f==='all'||(f==='mine')===isMine(p));
+  if(!D.playlists.length&&D.err){$('#lib').innerHTML=`<div class="glass empty">${ic('alert')}<div>${esc(D.err.message)}</div><button class="btn" id="libRe" style="margin-top:14px">${ic('refresh')} Riprova</button></div>`;$('#libRe').onclick=async()=>{D.loaded=false;renderLibrary();await loadLibrary();renderLibrary()};return}
   const items=[...(f!=='follow'?[{img:'',title:'Brani che ti piacciono',sub:D.saved.length+(D.savedMore?'+':'')+' brani',liked:1,open:()=>openSaved(),play:()=>D.saved.length&&playList(D.saved,0,'Brani che ti piacciono')}]:[]),
     ...pls.map(p=>({img:pickImg(p.images,300),title:p.name,sub:isMine(p)?plCount(p)+' brani':'Seguita · '+(p.owner?.display_name||''),open:()=>openPlaylist(p),play:()=>playContext(p.uri,p.name)}))];
-  $('#lib').innerHTML=items.length?`<div class="grid cas">${items.map((c,i)=>`<div class="card" data-k="${i}" style="--i:${Math.min(i,16)}"><div class="cv" ${c.liked?'style="background:linear-gradient(135deg,var(--acc),var(--acc2));display:grid;place-items:center;color:#fff"':''}>${c.liked?ic('heart').replace('<svg','<svg style="width:54px;height:54px"'):c.img?`<img loading="lazy" src="${esc(c.img)}" alt="">`:''}<div class="pl">${ic('play')}</div></div><b>${esc(c.title)}</b><span>${esc(c.sub)}</span></div>`).join('')}</div>`:`<div class="empty">${ic('library')}<div>Nessuna playlist qui</div></div>`;bindCards($('#lib'),items)}
+  $('#lib').innerHTML=items.length?`<div class="grid cas">${items.map((c,i)=>`<div class="card" data-k="${i}" style="--i:${Math.min(i,16)}"><div class="cv" ${c.liked?'style="background:linear-gradient(135deg,var(--acc),var(--acc2));display:grid;place-items:center;color:#fff"':''}>${c.liked?ic('heart').replace('<svg','<svg style="width:54px;height:54px"'):c.img?`<img loading="lazy" src="${esc(c.img)}" alt="">`:''}<div class="pl">${ic('play')}</div></div><b>${esc(c.title)}</b><span>${esc(c.sub)}</span></div>`).join('')}</div>`:`<div class="empty">${ic('library')}<div>Nessuna playlist qui</div>${f!=='all'?'<button class="btn" id="libAll" style="margin-top:14px">Mostra tutte</button>':''}</div>`;bindCards($('#lib'),items);const la=$('#libAll');if(la)la.onclick=()=>{cfg.libF='all';saveCfg();renderLibrary()}}
 function plView(head,tracks,o){show('playlist');const v=$('#v-playlist');v.innerHTML=`<button class="back" id="pBack">${ic('arrow')} Libreria</button><div class="pl-head">${head.img?`<img class="cv" src="${esc(head.img)}" alt="">`:`<div class="cv">${ic(head.icon||'music')}</div>`}<div><div class="kick">${esc(head.kind)}</div><h1 style="margin:6px 0">${esc(head.title)}</h1><p class="sub">${esc(head.sub)}</p><div style="display:flex;gap:10px;margin-top:16px"><button class="btn pri" id="pPlay">${ic('play')} Riproduci</button>${head.url?`<button class="btn" id="pOpen">${ic('spotify')} Spotify</button>`:''}</div></div></div><div id="pList">${tracks?'':skRows(8)}</div><div style="text-align:center;margin-top:14px" id="pMoreW"></div>`;
   $('#pBack').onclick=()=>show('library');$('#pPlay').onclick=head.play;if(head.url)$('#pOpen').onclick=()=>window.open(head.url,'_blank');if(tracks)fillList($('#pList'),tracks,o)}
 async function openPlaylist(p){const mine=isMine(p);const head={img:pickImg(p.images,300),kind:mine?'Playlist':'Playlist seguita',title:p.name,sub:(p.owner?.display_name||'')+(mine?' · '+plCount(p)+' brani':''),url:p.external_urls?.spotify,play:()=>playContext(p.uri,p.name)};plView(head,null);
@@ -1015,18 +1018,18 @@ function showOnboard(){const o=$('#onb');o.classList.add('on');const fileMode=lo
 
 
 /* ---------- aggiornamenti automatici ---------- */
-const APP_VER='2026.10.10-12';let updShown=false;
+const APP_VER='2026.10.10-13';let updShown=false;
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 async function checkUpdate(manual){if(location.protocol==='file:')return'err';try{const j=await(await fetch('version.json?t='+Date.now(),{cache:'no-store'})).json();if(!j.v||j.v===APP_VER)return'same';
   const go=()=>{LS.set('mt_updated',j.v);location.reload()};if(manual||!PB.st||PB.st.paused){setTimeout(go,manual?600:0);return'new'}
   if(!updShown){updShown=true;toast('Nuova versione di Meteora disponibile','refresh',0,{label:'Aggiorna',fn:go})}return'new'}catch{return'err'}}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setInterval(checkUpdate,15*60000);
 /* ---------- avvio ---------- */
-async function loadLibrary(){const g=p=>api(p).catch(()=>null);
+async function loadLibrary(){D.err=null;const g=p=>api(p).catch(e=>{D.err=D.err||e;return null});
   const[a,s,m,sv,r,pl]=await Promise.all([g('/me/top/artists?limit=20&time_range=short_term'),g('/me/top/tracks?limit=50&time_range=short_term'),g('/me/top/tracks?limit=50&time_range=medium_term'),g('/me/tracks?limit=50'),g('/me/player/recently-played?limit=50'),g('/me/playlists?limit=50')]);
   D.topA=a?.items||[];D.topS=(s?.items||[]).map(norm).filter(Boolean);D.topM=(m?.items||[]).map(norm).filter(Boolean);
   D.saved=(sv?.items||[]).map(x=>norm(x.track||x.item)).filter(Boolean);D.savedMore=!!sv?.next;D.recent=(r?.items||[]).map(x=>norm(x.track)).filter(Boolean);D.playlists=(pl?.items||[]).filter(Boolean);
-  D.loaded=true;if(!D.topS.length&&!D.saved.length&&!D.recent.length)toast('Pochi dati d\'ascolto: il mix userà soprattutto scoperte','music',5000);
+  D.loaded=true;if(D.err)toast(D.err.message,'alert',6000);if(!D.topS.length&&!D.saved.length&&!D.recent.length)toast('Pochi dati d\'ascolto: il mix userà soprattutto scoperte','music',5000);
   if(curView==='home')renderHome();if(curView==='library')renderLibrary()}
 async function startApp(){$('#onb').classList.remove('on');try{D.me=await api('/me')}catch(e){if(e.status===403)toast('Account non abilitato: aggiungilo agli utenti dell\'app Spotify','alert',7000);showOnboard();return}
   renderUser();initSDK();show('home');loadLibrary();setVol(PB.vol);setTimeout(moveToApp,1500)}
