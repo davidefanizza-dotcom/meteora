@@ -298,6 +298,27 @@ h3{font-size:16px;font-weight:700;margin-bottom:12px;display:flex;align-items:ce
 .notrans *{transition:none!important}
 .noicons .w-rays,.noicons .w-cloud,.noicons .w-drops path,.noicons .w-bolt,.noicons .w-flakes circle,.noicons .w-fog path,.noicons .w-moon,.noicons .w-star,.noicons .w-wind path,.noicons .w-hot{animation:none}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+/* Liquid Glass */
+@property --gx{syntax:'<percentage>';inherits:true;initial-value:28%}
+@property --gy{syntax:'<percentage>';inherits:true;initial-value:0%}
+.liquid{--blur:30px;--lg-hi:rgba(255,255,255,.42);--lg-sheen:rgba(255,255,255,.5);--lg-glare:rgba(255,255,255,.12);
+ --lg-ring:inset 0 1px .5px var(--lg-hi),inset 0 -1px 1px rgba(255,255,255,.07),inset 0 0 0 1px rgba(255,255,255,.07),inset 16px 16px 30px -26px var(--lg-sheen),inset -16px -16px 30px -28px rgba(255,255,255,.2)}
+:root[data-theme=light] .liquid{--lg-hi:rgba(255,255,255,.95);--lg-sheen:rgba(255,255,255,.9);--lg-glare:rgba(255,255,255,.45)}
+.liquid .glass,.liquid .menu,.liquid .toast,.liquid .modal,.liquid .card,.liquid .btn:not(.pri),.liquid .chipbtn,.liquid .seg,.liquid .dd-b,.liquid .field,.liquid .fc .h,.liquid .fhead .ib,.liquid .searchbox{
+ background-image:radial-gradient(130% 100% at var(--gx) var(--gy),var(--lg-glare),transparent 55%);border-color:transparent;
+ box-shadow:var(--lg-ring),var(--shadow);backdrop-filter:blur(var(--blur)) saturate(1.9) brightness(1.06);-webkit-backdrop-filter:blur(var(--blur)) saturate(1.9) brightness(1.06)}
+.liquid .card,.liquid .btn:not(.pri),.liquid .chipbtn,.liquid .seg,.liquid .dd-b,.liquid .field,.liquid .fc .h,.liquid .fhead .ib{box-shadow:var(--lg-ring),0 4px 14px rgba(0,0,0,.14)}
+.liquid .menu,.liquid .toast,.liquid .modal{background-color:color-mix(in srgb,var(--glass3) 72%,transparent)}
+.liquid .btn.pri,.liquid .playbtn,.liquid .card .pl{box-shadow:inset 0 1px .5px rgba(255,255,255,.6),inset 0 -2px 4px rgba(0,0,0,.12),inset 12px 12px 22px -18px rgba(255,255,255,.7),0 8px 24px color-mix(in srgb,var(--acc) 38%,transparent)}
+.liquid .nav.on{background:color-mix(in srgb,var(--acc) 16%,transparent);box-shadow:var(--lg-ring)}
+.liquid .nav.on::before{display:none}
+.liquid .tog{box-shadow:inset 0 1px 2px rgba(0,0,0,.25)}
+.liquid .tog i{box-shadow:inset 0 1px .5px #fff,0 2px 8px rgba(0,0,0,.3)}
+.liquid .btn,.liquid .chipbtn,.liquid .playbtn,.liquid .ib,.liquid .card,.liquid .nav{transition:transform .5s cubic-bezier(.25,1.9,.45,1),background .25s,color .2s,box-shadow .3s}
+.liquid .btn:active,.liquid .chipbtn:active,.liquid .playbtn:active,.liquid .nav:active{transform:scale(1.06,.92);transition-duration:.12s}
+.liquid .ib:active{transform:scale(1.12,.9);transition-duration:.12s}
+.liquid .card:active{transform:scale(.97);transition-duration:.12s}
+.notrans.liquid .btn,.notrans.liquid .ib{transition:none}
 /* schermata in riproduzione */
 .now .cov,.now .tt b{cursor:pointer}
 .now .cov:hover{transform:scale(1.05)}
@@ -512,7 +533,7 @@ function moodFrom({code,isDay,temp,wind}){
 }
 
 /* ---------- configurazione persistente ---------- */
-const DEF={clientId:'',theme:'dark',fx:{weather:true,trans:true,cascade:true,icons:true,blur:true},loc:{mode:'auto',name:'Calimera',lat:40.25,lon:18.28},auto:true,interval:10,mix:70,sim:null,vol:60};
+const DEF={clientId:'',theme:'dark',fx:{weather:true,trans:true,cascade:true,icons:true,blur:true,liquid:true,tilt:false},loc:{mode:'auto',name:'Calimera',lat:40.25,lon:18.28},auto:true,interval:10,mix:70,sim:null,vol:60};
 const saved=LS.get('mt_cfg',{});
 const cfg=Object.assign({},DEF,saved);cfg.fx=Object.assign({},DEF.fx,saved.fx);cfg.loc=Object.assign({},DEF.loc,saved.loc);
 const saveCfg=()=>LS.set('mt_cfg',cfg);
@@ -520,6 +541,17 @@ let tok=LS.get('mt_tok',null);
 let learn=LS.get('mt_learn',{});
 const saveLearn=()=>LS.set('mt_learn',learn);
 
+
+/* ---------- luce Liquid Glass ---------- */
+const LIGHT={x:28,y:0,tx:28,ty:0,raf:0,tiltOn:false,
+  to(x,y){if(!cfg.fx.liquid||RM)return;this.tx=Math.max(-10,Math.min(110,x));this.ty=Math.max(-10,Math.min(110,y));if(!this.raf)this.raf=requestAnimationFrame(()=>this.step())},
+  step(){this.x+=(this.tx-this.x)*.16;this.y+=(this.ty-this.y)*.16;const r=document.documentElement.style;r.setProperty('--gx',this.x.toFixed(1)+'%');r.setProperty('--gy',this.y.toFixed(1)+'%');
+    this.raf=(Math.abs(this.tx-this.x)>.3||Math.abs(this.ty-this.y)>.3)&&!document.hidden?requestAnimationFrame(()=>this.step()):0},
+  onTilt(e){if(e.gamma==null)return;LIGHT.to(50+e.gamma*1.6,25+(e.beta-50)*1.3)},
+  async askTilt(){try{if(typeof DeviceOrientationEvent!=='undefined'&&DeviceOrientationEvent.requestPermission)return(await DeviceOrientationEvent.requestPermission())==='granted';return'DeviceOrientationEvent' in window}catch{return false}},
+  setTilt(on){if(on===this.tiltOn)return;this.tiltOn=on;on?addEventListener('deviceorientation',this.onTilt):removeEventListener('deviceorientation',this.onTilt)}};
+addEventListener('pointermove',e=>{if(!LIGHT.tiltOn)LIGHT.to(e.clientX/innerWidth*100,e.clientY/innerHeight*100-20)},{passive:true});
+addEventListener('pointerdown',e=>{if(!LIGHT.tiltOn)LIGHT.to(e.clientX/innerWidth*100,e.clientY/innerHeight*100-20)},{passive:true});
 /* ---------- toast / modali / menu ---------- */
 function toast(msg,icon='check',ms=3200,action){const t=document.createElement('div');t.className='toast';t.innerHTML=ic(icon)+'<span>'+esc(msg)+'</span>'+(action?`<button class="btn pri" style="padding:6px 12px;font-size:12px;margin-left:6px">${esc(action.label)}</button>`:'');$('#toasts').appendChild(t);const out=()=>{t.classList.add('out');setTimeout(()=>t.remove(),320)};if(action)$('button',t).onclick=()=>{out();action.fn()};if(ms)setTimeout(out,ms);return t}
 function modal(html,cls=''){const ov=document.createElement('div');ov.className='ov';ov.innerHTML=`<div class="modal ${cls}">${html}</div>`;document.body.appendChild(ov);
@@ -555,7 +587,7 @@ function slider(el,{value=0,onInput,onChange}){el.innerHTML='<div class="tr"><di
 /* ---------- tema ed effetti ---------- */
 function applyTheme(){const t=cfg.theme==='system'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):cfg.theme;document.documentElement.dataset.theme=t;$('meta[name=theme-color]').content=t==='light'?'#eef1f6':'#0b0d12'}
 matchMedia('(prefers-color-scheme: light)').addEventListener('change',()=>cfg.theme==='system'&&applyTheme());
-function applyFx(){const b=document.body.classList;b.toggle('notrans',!cfg.fx.trans);b.toggle('nocascade',!cfg.fx.cascade);b.toggle('icons',cfg.fx.icons);b.toggle('noicons',!cfg.fx.icons);b.toggle('noblur',!cfg.fx.blur);
+function applyFx(){const b=document.body.classList;b.toggle('notrans',!cfg.fx.trans);b.toggle('nocascade',!cfg.fx.cascade);b.toggle('icons',cfg.fx.icons);b.toggle('noicons',!cfg.fx.icons);b.toggle('noblur',!cfg.fx.blur);b.toggle('liquid',!!cfg.fx.liquid);LIGHT.setTilt(cfg.fx.liquid&&cfg.fx.tilt);
   $('#bgGlow').style.animationPlayState=cfg.fx.weather&&!RM?'running':'paused';FX.toggle()}
 function applyAccent(m){const M=MOODS[m];const s=document.documentElement.style;s.setProperty('--acc',M.a);s.setProperty('--acc2',M.b)}
 
@@ -908,7 +940,7 @@ function openSettings(){const ov=modal(`<div class="mhd"><h2>Impostazioni</h2><b
    <div class="srow" style="flex-direction:column;align-items:stretch"><div><b>Preferiti o scoperte</b><span id="stMixL">${cfg.mix}% dai tuoi gusti · ${100-cfg.mix}% nuove scoperte</span></div><div class="sld" id="stMix"></div><div class="mix-l"><span>Tutte scoperte</span><span>Solo preferiti</span></div></div>
    <div class="srow"><div><b>Meteo</b><span>Usa il meteo reale o simulane uno</span></div><span id="stSim"></span></div></div>
   <div class="set"><h4>Aspetto</h4><div class="srow"><div><b>Tema</b></div><div class="seg" id="stTheme">${[['dark','Scuro'],['light','Chiaro'],['system','Sistema']].map(([k,l])=>`<button data-t="${k}" class="${cfg.theme===k?'on':''}">${l}</button>`).join('')}</div></div>
-   ${[['weather','Animazione meteo di sfondo','Pioggia, neve, stelle sullo sfondo'],['trans','Transizioni','Passaggi morbidi tra le schermate'],['cascade','Entrata a cascata','Gli elementi compaiono uno dopo l\'altro'],['icons','Icone animate','Micro-animazioni delle icone'],['blur','Effetto vetro','Sfocatura dei pannelli']].map(([k,b,s])=>`<div class="srow"><div><b>${b}</b><span>${s}</span></div><span data-fx="${k}"></span></div>`).join('')}</div>
+   ${[['weather','Animazione meteo di sfondo','Pioggia, neve, stelle sullo sfondo'],['trans','Transizioni','Passaggi morbidi tra le schermate'],['cascade','Entrata a cascata','Gli elementi compaiono uno dopo l\'altro'],['icons','Icone animate','Micro-animazioni delle icone'],['blur','Effetto vetro','Sfocatura dei pannelli'],['liquid','Liquid Glass','Riflessi sui bordi, luce viva e pulsanti morbidi'],['tilt','Luce con l\'inclinazione','Il riflesso segue il movimento del telefono']].map(([k,b,s])=>`<div class="srow"><div><b>${b}</b><span>${s}</span></div><span data-fx="${k}"></span></div>`).join('')}</div>
   <div class="set"><h4>Dati</h4><div class="srow"><div><b>Gusti per meteo</b><span>${Object.values(learn).reduce((a,o)=>a+Object.keys(o).filter(k=>k.startsWith('t:')).length,0)} brani imparati</span></div><div style="display:flex;gap:6px"><button class="ib" id="stExp" data-ic="download" title="Esporta">${ic('download')}</button><button class="ib" id="stImp" data-ic="upload" title="Importa">${ic('upload')}</button><button class="ib" id="stRst" data-ic="trash" title="Azzera">${ic('trash')}</button></div></div></div>`);
   const m=$('.modal',ov);
   $('#stCid',m).onchange=e=>{cfg.clientId=e.target.value.trim();saveCfg();toast('Client ID salvato')};
@@ -923,7 +955,7 @@ function openSettings(){const ov=modal(`<div class="mhd"><h2>Impostazioni</h2><b
   slider($('#stMix',m),{value:cfg.mix/100,onInput:v=>{cfg.mix=Math.round(v*20)*5;$('#stMixL',m).textContent=`${cfg.mix}% dai tuoi gusti · ${100-cfg.mix}% nuove scoperte`},onChange:()=>saveCfg()});
   dropdown($('#stSim',m),[{v:'',l:'Reale',i:'pin'},...MOOD_ORDER.map(k=>({v:k,l:MOODS[k].nome,i:k,wi:1}))],cfg.sim||'',v=>{cfg.sim=v||null;saveCfg();setMood(cfg.sim||WX.real)});
   $$('#stTheme button',m).forEach(b=>b.onclick=()=>{cfg.theme=b.dataset.t;saveCfg();applyTheme();$$('#stTheme button',m).forEach(x=>x.classList.toggle('on',x===b));FX.seed()});
-  $$('[data-fx]',m).forEach(el=>{const k=el.dataset.fx;toggle(el,cfg.fx[k],on=>{cfg.fx[k]=on;saveCfg();applyFx()})});
+  $$('[data-fx]',m).forEach(el=>{const k=el.dataset.fx;toggle(el,cfg.fx[k],async on=>{if(k==='tilt'&&on){const ok=await LIGHT.askTilt();if(!ok){el.setAttribute('aria-checked','false');toast('Permesso movimento negato','alert');return}}cfg.fx[k]=on;saveCfg();applyFx()})});
   $('#stExp',m).onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({meteora:1,learn,cfg:{...cfg,clientId:undefined}},null,2)],{type:'application/json'}));a.download='meteora-gusti.json';a.click();toast('Gusti esportati','download')};
   $('#stImp',m).onclick=()=>{const f=$('#fileIn');f.value='';f.onchange=async()=>{try{const j=JSON.parse(await f.files[0].text());if(!j.learn)throw 0;for(const[k,o]of Object.entries(j.learn))learn[k]=Object.assign(learn[k]||{},o);saveLearn();toast('Gusti importati','upload')}catch{toast('File non valido','alert')}};f.click()};
   $('#stRst',m).onclick=async()=>{if(await confirmBox('Azzerare i gusti?','Meteora dimenticherà i 👍 e 👎 che hai dato per ogni meteo.','Azzera')){learn={};saveLearn();toast('Gusti azzerati','trash')}}}
@@ -941,7 +973,7 @@ function showOnboard(){const o=$('#onb');o.classList.add('on');const fileMode=lo
 
 
 /* ---------- aggiornamenti automatici ---------- */
-const APP_VER='2026.10.10-6';let updShown=false;
+const APP_VER='2026.10.10-7';let updShown=false;
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 async function checkUpdate(){if(location.protocol==='file:')return;try{const j=await(await fetch('version.json?t='+Date.now(),{cache:'no-store'})).json();if(!j.v||j.v===APP_VER)return;
   const go=()=>location.reload();if(!PB.st||PB.st.paused){go();return}
