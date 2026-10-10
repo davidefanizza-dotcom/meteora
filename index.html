@@ -288,6 +288,38 @@ h3{font-size:16px;font-weight:700;margin-bottom:12px;display:flex;align-items:ce
 .notrans *{transition:none!important}
 .noicons .w-rays,.noicons .w-cloud,.noicons .w-drops path,.noicons .w-bolt,.noicons .w-flakes circle,.noicons .w-fog path,.noicons .w-moon,.noicons .w-star,.noicons .w-wind path,.noicons .w-hot{animation:none}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+/* schermata in riproduzione */
+.now .cov,.now .tt b{cursor:pointer}
+.now .cov:hover{transform:scale(1.05)}
+#full{position:fixed;inset:0;z-index:60;display:none;overflow:hidden;background:var(--bg)}
+#full.on{display:block;animation:fullIn .5s cubic-bezier(.2,.9,.25,1)}
+#full.out{animation:fullOut .32s cubic-bezier(.4,0,1,1) forwards}
+.notrans #full.on,.notrans #full.out{animation:none}
+@keyframes fullIn{from{opacity:0;transform:translate3d(0,6%,0)}}
+@keyframes fullOut{to{opacity:0;transform:translate3d(0,6%,0)}}
+.fbg{position:absolute;inset:-15%;background-size:cover;background-position:center;filter:blur(70px) saturate(1.5) brightness(.55);transform:scale(1.1);transition:background-image .6s;animation:glow 26s ease-in-out infinite alternate}
+:root[data-theme=light] .fbg{filter:blur(70px) saturate(1.3) brightness(1.15);opacity:.7}
+.fwrap{position:relative;z-index:1;height:100%;overflow-y:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:48px;align-items:center;padding:70px 6vw 40px;max-width:1300px;margin:0 auto}
+.fclose{position:absolute;top:18px;left:18px;z-index:2;width:44px;height:44px;background:var(--glass2);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.fclose svg{width:24px;height:24px}
+.ftop{position:absolute;top:24px;left:0;right:0;text-align:center;z-index:1;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tx2);display:flex;justify-content:center;align-items:center;gap:6px;pointer-events:none}
+.ftop .wi{width:16px;height:16px;display:inline-block;color:var(--acc)}
+.fcov{width:min(100%,62vh,520px);aspect-ratio:1;justify-self:center;border-radius:22px;object-fit:cover;box-shadow:0 30px 80px rgba(0,0,0,.5);background:var(--glass2);transition:transform .5s cubic-bezier(.2,.8,.2,1)}
+#full.paused .fcov{transform:scale(.92)}
+.fcov.chg{animation:covIn .55s cubic-bezier(.2,.8,.2,1)}
+.finfo{display:flex;flex-direction:column;gap:22px;min-width:0}
+.ftitle{display:flex;align-items:center;gap:12px}
+.ftitle>div{flex:1;min-width:0}
+.ftitle h1{font-size:clamp(26px,3.6vw,44px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ftitle p{color:var(--tx2);font-size:17px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fctr{display:flex;align-items:center;justify-content:center;gap:22px}
+.fctr .ib{width:52px;height:52px}.fctr .ib svg{width:26px;height:26px}
+.fctr .playbtn{width:72px;height:72px}.fctr .playbtn svg{width:30px;height:30px}
+.ffb{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
+.ffb .btn{padding:9px 14px;font-size:13px}
+.fq h3{margin:4px 0 8px;color:var(--tx2);font-size:13px;text-transform:uppercase;letter-spacing:.08em}
+.fq .list{max-height:260px;overflow-y:auto}
+@media (max-width:820px){.fwrap{grid-template-columns:1fr;gap:26px;padding:76px 20px 30px;align-content:start}.fcov{width:min(100%,46vh)}.fctr{gap:14px}}
 /* mobile */
 .mob-play{display:none!important}
 @media (max-width:820px){
@@ -351,6 +383,7 @@ h1{font-size:28px}
     </div>
   </footer>
 </div>
+<div id="full"></div>
 <div id="onb"></div>
 <div id="toasts"></div>
 <input type="file" id="fileIn" accept="application/json" hidden>
@@ -657,7 +690,7 @@ async function devicesMenu(){const b=$('#bDev').getBoundingClientRect();let list
   menu(b.left-180,b.top-10-list.length*40-40,[{h:'Riproduci su'},...list.map(d=>({label:d.name+(d.id===PB.sdkId?'':' · '+(d.type||'')),icon:'devices',on:d.id===PB.deviceId,act:async()=>{try{await api('/me/player',{method:'PUT',body:{device_ids:[d.id],play:PB.st?!PB.st.paused:false}});PB.deviceId=d.id;toast('Ora su '+d.name,'devices')}catch(e){toast(e.message,'alert')}}}))])}
 /* preferiti di Spotify */
 async function checkLiked(id){if(PB.liked.has(id))return setLikeBtn(id);try{let r;try{r=await api('/me/library/contains?uris='+encodeURIComponent('spotify:track:'+id))}catch{r=await api('/me/tracks/contains?ids='+id)}PB.liked.set(id,!!(r&&r[0]))}catch{}setLikeBtn(id)}
-function setLikeBtn(id){if(PB.st?.id!==id)return;$('#bLike').classList.toggle('liked',!!PB.liked.get(id))}
+function setLikeBtn(id){if(PB.st?.id!==id)return;$('#bLike').classList.toggle('liked',!!PB.liked.get(id));const f=$('#fLike');if(f)f.classList.toggle('liked',!!PB.liked.get(id))}
 async function toggleLike(id){if(!id)return;const on=!PB.liked.get(id),uri='spotify:track:'+id;
   try{try{await api('/me/library?uris='+encodeURIComponent(uri),{method:on?'PUT':'DELETE'})}catch{await api('/me/tracks?ids='+id,{method:on?'PUT':'DELETE'})}
     PB.liked.set(id,on);setLikeBtn(id);toast(on?'Aggiunto ai brani che ti piacciono':'Rimosso dai preferiti','heart')}catch(e){toast(e.message,'alert')}}
@@ -679,15 +712,47 @@ function buildShell(){$('#brandIc').innerHTML=wi('cloudsun');
   PB.prog=slider($('#sProg'),{value:0,onChange:v=>PB.st&&seek(v*PB.st.dur)});
   PB.volS=slider($('#sVol'),{value:PB.vol,onInput:v=>setVol(v)});
   $('#bMute').onclick=()=>{if(PB.vol>0){PB.lastVol=PB.vol;setVol(0);PB.volS.set(0)}else{const v=PB.lastVol||.6;setVol(v);PB.volS.set(v)}};
-  $('#sideW').onclick=()=>show('meteo');renderNow();
+  $('#sideW').onclick=()=>show('meteo');$('#now').addEventListener('click',e=>{if(e.target.closest('.cov,.tt b'))openFull()});renderNow();
   document.addEventListener('keydown',e=>{if(e.target.closest('input'))return;if(e.code==='Space'){e.preventDefault();togglePlay()}else if(e.key==='ArrowRight'&&e.altKey)next();else if(e.key==='ArrowLeft'&&e.altKey)prev()});
   setInterval(tick,250)}
-function tick(){const s=PB.st;if(!s||document.hidden)return;if(s.paused&&PB._lastTick===s.pos)return;PB._lastTick=s.pos;const p=curPos();if(!PB.prog.dragging){PB.prog.set(s.dur?p/s.dur:0);$('#tCur').textContent=fmt(p)}
+/* ---------- schermata in riproduzione ---------- */
+const FULL={el:null,prog:null,id:null};
+function openFull(){if(!PB.st){toast('Niente in riproduzione','music');return}const f=$('#full');FULL.el=f;f.classList.remove('out');f.classList.add('on');FULL.id=null;renderFull(true);
+  document.addEventListener('keydown',fullKey)}
+function closeFull(){const f=$('#full');if(!f.classList.contains('on'))return;document.removeEventListener('keydown',fullKey);f.classList.add('out');setTimeout(()=>{f.classList.remove('on','out');f.innerHTML='';FULL.id=null},cfg.fx.trans?320:0)}
+function fullKey(e){if(e.key==='Escape')closeFull()}
+const fullOpen=()=>$('#full').classList.contains('on')&&!$('#full').classList.contains('out');
+function renderFull(force){if(!fullOpen())return;const s=PB.st,f=$('#full');if(!s){closeFull();return}const playing=!s.paused;f.classList.toggle('paused',!playing);
+  if(force||FULL.id!==s.id){const first=FULL.id===null;FULL.id=s.id;const meteo=Q.mode==='meteo';
+    f.innerHTML=`<div class="fbg" style="background-image:url('${esc(s.img)}')"></div>
+    <button class="ib fclose" id="fClose" data-ic="chev" title="Chiudi">${ic('chev')}</button>
+    <div class="ftop">${meteo?`<span class="wi">${wi(Q.mood)}</span>`:ic('music').replace('<svg','<svg style="width:15px;height:15px"')}${esc(Q.ctxLabel||'In riproduzione')}</div>
+    <div class="fwrap"><img class="fcov ${first?'':'chg'}" src="${esc(s.img)}" alt="" onerror="this.removeAttribute('src')">
+     <div class="finfo"><div class="ftitle"><div><h1>${esc(s.name)}</h1><p>${esc(artistsTxt(s))}${s.album?' · '+esc(s.album):''}</p></div><button class="ib ${PB.liked.get(s.id)?'liked':''}" id="fLike" data-ic="heart" title="Mi piace">${ic('heart')}</button></div>
+      <div><div class="sld" id="fProg"></div><div class="prog" style="justify-content:space-between;margin-top:4px"><span id="fCur">0:00</span><span id="fDur">${fmt(s.dur)}</span></div></div>
+      <div class="fctr"><button class="ib" data-ic="prev" id="fPrev">${ic('prev')}</button><button class="playbtn" id="fPlay">${ic(playing?'pause':'play')}</button><button class="ib" data-ic="next" id="fNext">${ic('next')}</button></div>
+      <div class="ffb"><button class="btn" data-ic="thumbUp" id="fUp">${ic('thumbUp')} Perfetta con ${MOODS[meteo&&Q.mood?Q.mood:WX.mood].nome}</button><button class="btn" data-ic="thumbDown" id="fDown">${ic('thumbDown')} Non con questo meteo</button><button class="ib" data-ic="external" id="fSp" title="Apri su Spotify">${ic('external')}</button></div>
+      ${meteo&&Q.list.length>Q.idx+1?`<div class="fq"><h3>Prossimi nel Meteo Mix</h3><div id="fQ"></div></div>`:''}</div></div>`;
+    $('#fClose').onclick=closeFull;$('#fPrev').onclick=prev;$('#fNext').onclick=next;$('#fPlay').onclick=togglePlay;
+    $('#fLike').onclick=e=>{const b=e.currentTarget;b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');toggleLike(s.id).then(()=>b.classList.toggle('liked',!!PB.liked.get(s.id)))};
+    const cur=()=>(Q.mode==='meteo'&&Q.list[Q.idx]?.id===s.id)?Q.list[Q.idx]:{...s,mood:WX.mood};
+    $('#fUp').onclick=e=>{e.currentTarget.classList.remove('pop');void e.currentTarget.offsetWidth;e.currentTarget.classList.add('pop');feedback(cur(),1)};
+    $('#fDown').onclick=()=>feedback(cur(),-1);$('#fSp').onclick=()=>window.open('https://open.spotify.com/track/'+s.id,'_blank');
+    FULL.prog=slider($('#fProg'),{value:s.dur?curPos()/s.dur:0,onChange:v=>seek(v*s.dur)});
+    const fq=$('#fQ');if(fq){const up=Q.list.slice(Q.idx+1,Q.idx+9);fillList(fq,up,{reason:true,play:i=>playAt(Q.idx+1+i)});$$('.row .num',fq).forEach((n,i)=>n.textContent=i+1)}
+    /* chiusura con trascinamento verso il basso */
+    let y0=null;const w=$('.fwrap',f);w.addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse'&&!e.target.closest('.sld,button,.list'))y0=e.clientY});
+    w.addEventListener('pointerup',e=>{if(y0!=null&&e.clientY-y0>110&&w.scrollTop<=0)closeFull();y0=null})}
+  else{$('#fPlay').innerHTML=ic(playing?'pause':'play');$('#fDur').textContent=fmt(s.dur)}
+  tickFull()}
+function tickFull(){if(!fullOpen()||!PB.st||!FULL.prog)return;const p=curPos(),s=PB.st;if(!FULL.prog.dragging){FULL.prog.set(s.dur?p/s.dur:0);const c=$('#fCur');if(c)c.textContent=fmt(p)}}
+function tick(){const s=PB.st;if(!s||document.hidden)return;if(s.paused&&PB._lastTick===s.pos)return;PB._lastTick=s.pos;const p=curPos();tickFull();if(!PB.prog.dragging){PB.prog.set(s.dur?p/s.dur:0);$('#tCur').textContent=fmt(p)}
   if(!s.paused&&Q.mode==='meteo'&&!PB.adv&&!isSdk()&&s.dur&&p>=s.dur-400){/* fine brano su dispositivo remoto */setTimeout(pollRemote,800)}}
 function renderNow(chg){const s=PB.st,n=$('#now');const playing=s&&!s.paused;
   $('#bPlay').innerHTML=ic(playing?'pause':'play');$('#bPlayM').innerHTML=ic(playing?'pause':'play');
   if(!s){n.innerHTML=`<div class="cov" style="display:grid;place-items:center;color:var(--tx3)">${ic('music')}</div><div class="tt"><b>Niente in riproduzione</b><span>Avvia il Meteo Mix o scegli un brano</span></div>`;$('#tDur').textContent='0:00';$('#tCur').textContent='0:00';PB.prog.set(0);return}
   if(chg||!n.dataset.id||n.dataset.id!==s.id){n.dataset.id=s.id;n.innerHTML=`<img class="cov" src="${esc(s.img)}" alt=""><div class="tt"><b>${esc(s.name)}</b><span>${esc(artistsTxt(s))}</span>${Q.ctxLabel?`<div class="mode-pill">${Q.mode==='meteo'?`<span class="wi" style="width:14px;height:14px;display:inline-block">${wi(Q.mood)}</span>`:ic('music')}${esc(Q.ctxLabel)}</div>`:''}</div>`;n.classList.remove('chg');void n.offsetWidth;n.classList.add('chg')}
+  if(fullOpen())renderFull();
   $('#tDur').textContent=fmt(s.dur);$$('.row.playing').forEach(r=>r.classList.toggle('paused',!playing))}
 function markPlaying(){const id=PB.st?.id,paused=PB.st?.paused;$$('.row').forEach(r=>{const on=r.dataset.id===id;r.classList.toggle('playing',on);r.classList.toggle('paused',on&&!!paused)})}
 function show(v,push=true){if(v!=='playlist')viewStack=[];curView=v;$$('#side .nav').forEach(b=>b.classList.toggle('on',b.dataset.view===v||(v==='playlist'&&b.dataset.view==='library')));
