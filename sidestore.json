@@ -1,0 +1,37 @@
+{
+  "name": "Meteora",
+  "identifier": "com.davidefanizza.meteora.source",
+  "subtitle": "La musica che segue il meteo",
+  "iconURL": "https://davidefanizza-dotcom.github.io/meteora/icon-512.png",
+  "website": "https://davidefanizza-dotcom.github.io/meteora/",
+  "apps": [
+    {
+      "name": "Meteora",
+      "bundleIdentifier": "com.davidefanizza.meteora",
+      "developerName": "Davide",
+      "subtitle": "Spotify + meteo, con Liquid Glass",
+      "localizedDescription": "Player Spotify con Meteo Mix: una coda che cambia insieme al meteo.",
+      "iconURL": "https://davidefanizza-dotcom.github.io/meteora/icon-512.png",
+      "tintColor": "6D7BFF",
+      "category": "entertainment",
+      "versions": [
+        {
+          "version": "1.0.1",
+          "buildVersion": "1",
+          "date": "2026-10-10T17:09:24Z",
+          "localizedDescription": "Nuova build automatica.",
+          "downloadURL": "https://github.com/davidefanizza-dotcom/meteora/releases/download/ios-v1.0.1/Meteora.ipa",
+          "size": 930707,
+          "minOSVersion": "26.0"
+        }
+      ],
+      "appPermissions": {
+        "entitlements": [],
+        "privacy": {
+          "NSLocationWhenInUseUsageDescription": "Per leggere il meteo della tua zona."
+        }
+      }
+    }
+  ],
+  "news": []
+}
