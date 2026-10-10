@@ -734,11 +734,11 @@ const curPos=()=>{const s=PB.st;if(!s)return 0;return s.paused?s.pos:Math.min(s.
 function onState(ns){const old=PB.st;
   if(Q.mode==='meteo'&&old&&!PB.userPaused&&!PB.adv){const cur=Q.list[Q.idx];const near=cur&&old.id===cur.id&&old.dur-curPos()<3000;
     if(near&&((ns&&ns.paused&&ns.pos<1500)||(ns&&ns.id!==cur.id)||!ns)){PB.adv=true;next().finally(()=>setTimeout(()=>PB.adv=false,2000))}}
-  const chg=!old||!ns||old.id!==ns.id;PB.st=ns;renderNow(chg);markPlaying();if(chg&&ns)checkLiked(ns.id)}
+  const chg=!old||!ns||old.id!==ns.id;PB.st=ns;renderNow(chg);markPlaying();mediaSession(chg);if(chg&&ns)checkLiked(ns.id)}
 function sdkState(s){if(!s){onState(null);return}const t=s.track_window.current_track;if(!t)return;
-  onState({id:t.linked_from?.id||t.id,uri:t.uri,name:t.name,artists:t.artists.map(a=>({id:a.uri.split(':').pop(),name:a.name})),img:pickImg(t.album.images,300),album:t.album.name,dur:s.duration,pos:s.position,paused:s.paused,at:performance.now()})}
+  onState({id:t.linked_from?.id||t.id,uri:t.uri,name:t.name,artists:t.artists.map(a=>({id:a.uri.split(':').pop(),name:a.name})),img:pickImg(t.album.images,300),imgL:pickImg(t.album.images,640),album:t.album.name,dur:s.duration,pos:s.position,paused:s.paused,at:performance.now()})}
 async function pollRemote(){if(isSdk()||document.hidden||!tok)return;try{const p=await api('/me/player');if(!p||!p.item){return}
-  if(p.device?.id)PB.deviceId=p.device.id;const t=p.item;onState({id:t.id,uri:t.uri,name:t.name,artists:(t.artists||[]).map(a=>({id:a.id,name:a.name})),img:pickImg(t.album?.images,300),album:t.album?.name||'',dur:t.duration_ms,pos:p.progress_ms||0,paused:!p.is_playing,at:performance.now()})}catch{}}
+  if(p.device?.id)PB.deviceId=p.device.id;const t=p.item;onState({id:t.id,uri:t.uri,name:t.name,artists:(t.artists||[]).map(a=>({id:a.id,name:a.name})),img:pickImg(t.album?.images,300),imgL:pickImg(t.album?.images,640),album:t.album?.name||'',dur:t.duration_ms,pos:p.progress_ms||0,paused:!p.is_playing,at:performance.now()})}catch{}}
 function initSDK(){if(PB.sdk)return;window.onSpotifyWebPlaybackSDKReady=()=>{const p=new Spotify.Player({name:'Meteora',getOAuthToken:cb=>token().then(t=>t&&cb(t)),volume:PB.vol});
   p.addListener('ready',({device_id})=>{PB.sdkId=device_id;if(!PB.deviceId||!PB.st)PB.deviceId=device_id;toast('Player Meteora pronto','music')});
   p.addListener('not_ready',()=>{if(PB.deviceId===PB.sdkId)PB.deviceId=null});
@@ -765,6 +765,19 @@ function feedback(t,val){const m=Q.mode==='meteo'&&t.mood?t.mood:WX.mood;const L
   if(val>0)toast(`Segnato: perfetto con ${MOODS[m].nome}`,'thumbUp');
   else{toast(`Non lo proporrò più con ${MOODS[m].nome}`,'thumbDown');if(Q.mode==='meteo'){const i=Q.list.findIndex(x=>x.id===t.id);if(i===Q.idx)next();else if(i>Q.idx){Q.list.splice(i,1);renderMixList()}}}}
 
+
+/* ---------- Dynamic Island / schermata di blocco ---------- */
+let msBound=false;
+function mediaSession(chg){if(!('mediaSession' in navigator))return;const ms=navigator.mediaSession,s=PB.st;
+  if(!msBound){msBound=true;const h=(a,f)=>{try{ms.setActionHandler(a,f)}catch{}};
+    h('play',()=>{if(PB.st?.paused)togglePlay()});h('pause',()=>{if(PB.st&&!PB.st.paused)togglePlay()});
+    h('nexttrack',()=>next());h('previoustrack',()=>prev());h('seekto',d=>d.seekTime!=null&&seek(d.seekTime*1000));
+    h('seekbackward',d=>seek(Math.max(0,curPos()-(d.seekOffset||10)*1000)));h('seekforward',d=>seek(Math.min(PB.st?.dur||0,curPos()+(d.seekOffset||10)*1000)))}
+  if(!s){ms.playbackState='none';return}
+  if(chg||!ms.metadata){const art=[];if(s.img)art.push({src:s.img,sizes:'300x300',type:'image/jpeg'});if(s.imgL&&s.imgL!==s.img)art.push({src:s.imgL,sizes:'640x640',type:'image/jpeg'});
+    try{ms.metadata=new MediaMetadata({title:s.name,artist:artistsTxt(s),album:Q.mode==='meteo'?'Meteo Mix · '+MOODS[Q.mood||WX.mood].nome:(s.album||Q.ctxLabel||''),artwork:art})}catch{}}
+  ms.playbackState=s.paused?'paused':'playing';
+  try{if(s.dur)ms.setPositionState({duration:s.dur/1000,playbackRate:1,position:Math.min(s.dur,curPos())/1000})}catch{}}
 /* ---------- UI: shell ---------- */
 let curView='home',viewStack=[];
 const NAVS={home:['home','Home'],meteo:['cloudsun','Meteo Mix'],search:['search','Cerca'],library:['library','Libreria'],settings:['settings','Impostazioni']};
@@ -979,7 +992,7 @@ function showOnboard(){const o=$('#onb');o.classList.add('on');const fileMode=lo
 
 
 /* ---------- aggiornamenti automatici ---------- */
-const APP_VER='2026.10.10-8';let updShown=false;
+const APP_VER='2026.10.10-9';let updShown=false;
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 async function checkUpdate(){if(location.protocol==='file:')return;try{const j=await(await fetch('version.json?t='+Date.now(),{cache:'no-store'})).json();if(!j.v||j.v===APP_VER)return;
   const go=()=>location.reload();if(!PB.st||PB.st.paused){go();return}
