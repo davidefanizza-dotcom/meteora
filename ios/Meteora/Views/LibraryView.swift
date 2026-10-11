@@ -117,7 +117,7 @@ struct PlaylistView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.top, 10)
 
-                if locked || !mine {
+                if locked || (!mine && tracks.isEmpty && !loading) {
                     EmptyState(symbol: "lock.fill", title: "Elenco brani non disponibile",
                                message: "Spotify mostra i brani solo delle playlist create da te o di cui sei collaboratore. Questa la puoi comunque riprodurre con il tasto sopra.")
                 } else if let errorText {
@@ -146,7 +146,27 @@ struct PlaylistView: View {
         .background(WeatherBackground())
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            if mine && tracks.isEmpty { await load() }
+            guard tracks.isEmpty else { return }
+            if mine { await load() } else { await loadFollowed() }
+        }
+    }
+
+    private func loadFollowed() async {
+        loading = true
+        defer { loading = false }
+        guard let t = await app.library.followedTracks(playlist) else {
+            locked = true
+            return
+        }
+        tracks = t
+        total = t.count
+        // copertine mancanti (elenco dal riquadro di Spotify): da Deezer, una alla volta
+        for i in tracks.indices where tracks[i].imageURL == nil {
+            guard !Task.isCancelled else { return }
+            if let u = await app.analysis.coverURL(for: tracks[i]) {
+                let x = tracks[i]
+                tracks[i] = Track(id: x.id, uri: x.uri, name: x.name, artists: x.artists, album: x.album, imageURL: u, durationMs: x.durationMs)
+            }
         }
     }
 

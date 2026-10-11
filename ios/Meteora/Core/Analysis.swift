@@ -279,6 +279,16 @@ final class AnalysisStore {
         _ = await (x, y)
     }
 
+    /// Copertina di un brano da Deezer (per gli elenchi che non la includono).
+    func coverURL(for t: Track) async -> URL? {
+        let q = "\(t.artists.first?.name ?? "") \(Self.cleanTitle(t.name))".addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        guard let sr = try? await deezer("/search/track?limit=1&q=\(q)"),
+              let first = (sr["data"] as? [[String: Any]])?.first,
+              let album = first["album"] as? [String: Any],
+              let c = album["cover_medium"] as? String else { return nil }
+        return URL(string: c)
+    }
+
     // MARK: - Punteggi
 
     /// Generi del brano: dell'artista (MusicBrainz) se noti, altrimenti dell'album (Deezer).

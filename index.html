@@ -1114,7 +1114,15 @@ async function openPlaylist(p){const mine=isMine(p);const head={img:pickImg(p.im
   const locked=()=>{const l=$('#pList');if(!l)return;const dark=document.documentElement.dataset.theme!=='light';
     l.innerHTML=`<div class="spemb glass"><div class="spemb-h">${ic('spotify')}<span>Elenco brani dal riquadro ufficiale di Spotify. Per ascoltarla in Meteora usa <b>Riproduci</b> qui sopra.</span></div><div class="spemb-f"><div class="skel"></div><iframe title="Brani di ${esc(p.name)}" src="https://open.spotify.com/embed/playlist/${encodeURIComponent(p.id)}?utm_source=generator${dark?'&theme=0':''}" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe></div></div>`;
     const f=$('iframe',l);f.onload=()=>f.classList.add('on')};
-  if(!mine){locked();return}
+  if(!mine){/* 1° tentativo: playlist completa (campo vecchio "tracks"); se Spotify lo blocca, riquadro ufficiale */
+    const l=$('#pList');if(l)l.innerHTML=skRows(6);
+    const F='tracks(total,next,items(track(id,uri,name,duration_ms,type,artists(id,name),album(name,images),external_ids)))';
+    let all=[],next=null,total=0;
+    const draw=()=>{fillList($('#pList'),all,{label:p.name,play:i=>playContext(p.uri,p.name,all[i].uri),empty:'Playlist vuota'});const w=$('#pMoreW');if(!w)return;
+      w.innerHTML=next?`<button class="btn" id="pMore">${ic('plus')} Carica altri</button>`:'';const b=$('#pMore');if(b)b.onclick=async()=>{b.disabled=true;try{const j=await api(next);all=all.concat((j.items||[]).map(x=>norm(x.track||x.item)).filter(Boolean));next=j.next;draw()}catch{next=null;draw();toast('Spotify non dà altri brani di questa playlist','alert')}}};
+    try{const j=await api(`/playlists/${p.id}?`+new URLSearchParams({fields:F}));const tr=j?.tracks;all=(tr?.items||[]).map(x=>norm(x.track||x.item)).filter(Boolean);next=tr?.next||null;total=tr?.total||all.length;
+      if(all.length){const sub=$('#v-playlist .pl-head .sub');if(sub)sub.textContent=(p.owner?.display_name||'')+' · '+total+' brani';draw();return}}catch{}
+    locked();return}
   let all=[],off=0,total=Infinity;const load=async()=>{let j;try{j=await api(`/playlists/${p.id}/items?limit=50&offset=${off}`)}catch(e){if(e.status===404)j=await api(`/playlists/${p.id}/tracks?limit=50&offset=${off}`);else throw e}
     total=j.total;const tr=(j.items||[]).map(x=>norm(x.item||x.track)).filter(Boolean);all=all.concat(tr);off+=50;
     fillList($('#pList'),all,{label:p.name,play:i=>playContext(p.uri,p.name,all[i].uri),empty:'Playlist vuota'});const w=$('#pMoreW');if(!w)return;w.innerHTML=off<total?`<button class="btn" id="pMore">${ic('plus')} Carica altri</button>`:'';const b=$('#pMore');if(b)b.onclick=()=>{b.disabled=true;load().catch(err)}};
@@ -1278,7 +1286,7 @@ function showOnboard(){const o=$('#onb');o.classList.add('on');const fileMode=lo
 
 
 /* ---------- aggiornamenti automatici ---------- */
-const APP_VER='2026.10.11-3';let updShown=false;
+const APP_VER='2026.10.11-4';let updShown=false;
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 async function checkUpdate(manual){if(location.protocol==='file:')return'err';try{const j=await(await fetch('version.json?t='+Date.now(),{cache:'no-store'})).json();if(!j.v||j.v===APP_VER)return'same';
   const go=()=>{LS.set('mt_updated',j.v);location.reload()};if(manual||!PB.st||PB.st.paused){setTimeout(go,manual?600:0);return'new'}

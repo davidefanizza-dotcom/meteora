@@ -84,6 +84,39 @@ final class LibraryStore {
         return (tracks, page.total ?? tracks.count)
     }
 
+    /// Brani di una playlist seguita: prima la playlist completa (campo "tracks"),
+    /// poi l'elenco del riquadro ufficiale di Spotify (open.spotify.com/embed).
+    func followedTracks(_ p: Playlist) async -> [Track]? {
+        struct PL: Decodable { let tracks: Paging<PlaylistItem>? }
+        let fields = "tracks(total,next,items(track(id,uri,name,duration_ms,type,artists(id,name),album(name,images),external_ids)))"
+        if let r: PL = try? await api.get("/playlists/\(p.id)", ["fields": fields]),
+           let items = r.tracks?.items {
+            let t = items.compactMap { Track($0.item ?? $0.track) }
+            if !t.isEmpty { return t }
+        }
+        guard let url = URL(string: "https://open.spotify.com/embed/playlist/\(p.id)") else { return nil }
+        var req = URLRequest(url: url)
+        req.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1",
+                     forHTTPHeaderField: "User-Agent")
+        guard let (data, _) = try? await URLSession.shared.data(for: req),
+              let html = String(data: data, encoding: .utf8),
+              let r1 = html.range(of: "<script id=\"__NEXT_DATA__\" type=\"application/json\">"),
+              let r2 = html.range(of: "</script>", range: r1.upperBound..<html.endIndex),
+              let obj = try? JSONSerialization.jsonObject(with: Data(html[r1.upperBound..<r2.lowerBound].utf8)) as? [String: Any],
+              let props = obj["props"] as? [String: Any], let page = props["pageProps"] as? [String: Any],
+              let state = page["state"] as? [String: Any], let d = state["data"] as? [String: Any],
+              let entity = d["entity"] as? [String: Any], let list = entity["trackList"] as? [[String: Any]]
+        else { return nil }
+        let tracks = list.compactMap { x -> Track? in
+            guard let uri = x["uri"] as? String, uri.hasPrefix("spotify:track:"), let title = x["title"] as? String else { return nil }
+            let id = String(uri.dropFirst("spotify:track:".count))
+            let artist = x["subtitle"] as? String ?? ""
+            let dur = (x["duration"] as? Int) ?? Int(x["duration"] as? Double ?? 0)
+            return Track(id: id, uri: uri, name: title, artists: [ArtistRef(id: "", name: artist)], album: "", imageURL: nil, durationMs: dur)
+        }
+        return tracks.isEmpty ? nil : tracks
+    }
+
     func loadMoreSaved() async {
         do {
             let page: Paging<SavedTrack> = try await api.get("/me/tracks", ["limit": "50", "offset": "\(saved.count)"])
