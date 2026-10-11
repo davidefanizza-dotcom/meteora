@@ -981,7 +981,7 @@ function openSettings(){const ov=modal(`<div class="mhd"><h2>Impostazioni</h2><b
    <div class="srow"><div><b>Meteo</b><span>Usa il meteo reale o simulane uno</span></div><span id="stSim"></span></div></div>
   <div class="set"><h4>Aspetto</h4><div class="srow"><div><b>Tema</b></div><div class="seg" id="stTheme">${[['dark','Scuro'],['light','Chiaro'],['system','Sistema']].map(([k,l])=>`<button data-t="${k}" class="${cfg.theme===k?'on':''}">${l}</button>`).join('')}</div></div>
    ${[['weather','Animazione meteo di sfondo','Pioggia, neve, stelle sullo sfondo'],['trans','Transizioni','Passaggi morbidi tra le schermate'],['cascade','Entrata a cascata','Gli elementi compaiono uno dopo l\'altro'],['icons','Icone animate','Micro-animazioni delle icone'],['blur','Effetto vetro','Sfocatura dei pannelli'],['liquid','Liquid Glass','Riflessi sui bordi, luce viva e pulsanti morbidi'],['tilt','Luce con l\'inclinazione','Il riflesso segue il movimento del telefono']].map(([k,b,s])=>`<div class="srow"><div><b>${b}</b><span>${s}</span></div><span data-fx="${k}"></span></div>`).join('')}</div>
-  <div class="set"><h4>Dati</h4><div class="srow"><div><b>Gusti per meteo</b><span>${Object.values(learn).reduce((a,o)=>a+Object.keys(o).filter(k=>k.startsWith('t:')).length,0)} brani imparati</span></div><div style="display:flex;gap:6px"><button class="ib" id="stExp" data-ic="download" title="Esporta">${ic('download')}</button><button class="ib" id="stImp" data-ic="upload" title="Importa">${ic('upload')}</button><button class="ib" id="stRst" data-ic="trash" title="Azzera">${ic('trash')}</button></div></div></div>
+  <div class="set"><h4>Dati</h4><div class="srow"><div><b>Gusti per meteo</b><span>${Object.values(learn).reduce((a,o)=>a+Object.keys(o).filter(k=>k.startsWith('t:')).length,0)} brani imparati</span></div><div style="display:flex;gap:6px"><button class="ib" id="stExp" data-ic="download" title="Esporta backup">${ic('download')}</button><button class="ib" id="stImp" data-ic="upload" title="Importa backup">${ic('upload')}</button><button class="ib" id="stRst" data-ic="trash" title="Azzera">${ic('trash')}</button></div></div></div>
   <div class="set"><h4>App</h4><div class="srow"><div><b>Versione ${APP_VER}</b><span id="stVerS">Gli aggiornamenti arrivano da soli</span></div><button class="btn" id="stUpd" data-ic="refresh">${ic('refresh')} Controlla</button></div></div>`);
   const m=$('.modal',ov);
   $('#stCid',m).onchange=e=>{cfg.clientId=e.target.value.trim();saveCfg();toast('Client ID salvato')};
@@ -1000,8 +1000,8 @@ function openSettings(){const ov=modal(`<div class="mhd"><h2>Impostazioni</h2><b
   dropdown($('#stSim',m),[{v:'',l:'Reale',i:'pin'},...MOOD_ORDER.map(k=>({v:k,l:MOODS[k].nome,i:k,wi:1}))],cfg.sim||'',v=>{cfg.sim=v||null;saveCfg();setMood(cfg.sim||WX.real)});
   $$('#stTheme button',m).forEach(b=>b.onclick=()=>{cfg.theme=b.dataset.t;saveCfg();applyTheme();$$('#stTheme button',m).forEach(x=>x.classList.toggle('on',x===b));FX.seed()});
   $$('[data-fx]',m).forEach(el=>{const k=el.dataset.fx;toggle(el,cfg.fx[k],async on=>{if(k==='tilt'&&on){const ok=await LIGHT.askTilt();if(!ok){el.setAttribute('aria-checked','false');toast('Permesso movimento negato','alert');return}}cfg.fx[k]=on;saveCfg();applyFx()})});
-  $('#stExp',m).onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({meteora:1,learn,cfg:{...cfg,clientId:undefined}},null,2)],{type:'application/json'}));a.download='meteora-gusti.json';a.click();toast('Gusti esportati','download')};
-  $('#stImp',m).onclick=()=>{const f=$('#fileIn');f.value='';f.onchange=async()=>{try{const j=JSON.parse(await f.files[0].text());if(!j.learn)throw 0;for(const[k,o]of Object.entries(j.learn))learn[k]=Object.assign(learn[k]||{},o);saveLearn();toast('Gusti importati','upload')}catch{toast('File non valido','alert')}};f.click()};
+  $('#stExp',m).onclick=async()=>{if(await BACKUP.save('meteora-backup.json',{meteora:2,learn,cfg}))toast('Backup esportato','download')};
+  $('#stImp',m).onclick=()=>{const f=$('#fileIn');f.value='';f.onchange=async()=>{try{const j=JSON.parse(await f.files[0].text());if(!j.learn)throw 0;for(const[k,o]of Object.entries(j.learn))learn[k]=Object.assign(learn[k]||{},o);saveLearn();if(j.cfg){const old=cfg.clientId;Object.assign(cfg,j.cfg);if(!j.cfg.clientId)cfg.clientId=old;saveCfg();toast('Backup importato','upload');setTimeout(()=>location.reload(),700)}else toast('Gusti importati','upload')}catch{toast('File non valido','alert')}};f.click()};
   $('#stUpd',m).onclick=async e=>{const b=e.currentTarget;b.disabled=true;$('#stVerS',m).textContent='Controllo…';const r=await checkUpdate(true);b.disabled=false;$('#stVerS',m).textContent=r==='same'?'Hai già l\'ultima versione':r==='new'?'Aggiornamento trovato':'Impossibile controllare ora'};
   $('#stRst',m).onclick=async()=>{if(await confirmBox('Azzerare i gusti?','Meteora dimenticherà i 👍 e 👎 che hai dato per ogni meteo.','Azzera')){learn={};saveLearn();toast('Gusti azzerati','trash')}}}
 
@@ -1036,6 +1036,26 @@ async function startApp(){$('#onb').classList.remove('on');try{D.me=await api('/
 (async function boot(){applyTheme();FX.init();applyFx();buildShell();setMood(cfg.sim||WX.mood);show('home');
   await handleCallback();loadWeather();scheduleWeather();
   if(!cfg.clientId||!tok)showOnboard();else startApp();const up=LS.get('mt_updated',null);if(up){LS.del('mt_updated');setTimeout(()=>toast('Meteora aggiornata alla versione '+APP_VER,'sparkle',4500),900)}checkUpdate()})();
+
+/* ---------- Backup impostazioni (esporta/importa) ---------- */
+const BACKUP = {
+  async save(name, data){
+    const txt = JSON.stringify(data, null, 2);
+    const file = new File([txt], name, { type: "application/json" });
+    try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: name }); return true; } } catch (e) { if (e && e.name === "AbortError") return false; }
+    const a = document.createElement("a"); a.href = URL.createObjectURL(file); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    return true;
+  },
+  pick(){
+    return new Promise((res, rej) => {
+      const i = document.createElement("input"); i.type = "file"; i.accept = "application/json,.json";
+      i.onchange = async () => { try { res(JSON.parse(await i.files[0].text())); } catch (e) { rej(e); } };
+      i.click();
+    });
+  },
+  dump(keep){ const o = {}; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (keep(k)) o[k] = localStorage.getItem(k); } return o; },
+  restore(o, keep){ let n = 0; for (const [k, v] of Object.entries(o || {})) if (keep(k) && typeof v === "string") { localStorage.setItem(k, v); n++; } return n; }
+};
 </script>
 </body>
 </html>
