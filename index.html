@@ -219,6 +219,9 @@ h3{font-size:16px;font-weight:700;margin-bottom:12px;display:flex;align-items:ce
 .note svg{width:18px;height:18px;color:var(--acc);flex:none}
 .stats{display:flex;gap:18px;flex-wrap:wrap;color:var(--tx2);font-size:13px}
 .stats b{color:var(--tx)}
+.ana{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;font-size:12.5px;font-weight:600;color:var(--tx2)}
+.ana .gl{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}.ana .gl>svg{width:15px;height:15px;color:var(--acc)}
+.ana .chip{font-size:11.5px}
 /* cerca */
 .searchbox{display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:30px;max-width:640px}
 .searchbox svg{width:20px;height:20px;color:var(--tx2)}
@@ -690,8 +693,20 @@ const PROFILE={
  nebbia:{bpm:[55,100],fl:['ambient','dreamy','atmospheric','ethereal'],g:{'Films/Games':2.5,'Electro':2,'Alternative':2,'Classical':2,'Folk':1,'Jazz':1,'Pop':.3,'Dance':-2,'Reggaeton':-2.5,'Latin Music':-2,'Salsa':-2,'Metal':-1}},
  notte:{bpm:[70,115],fl:['night','late night','midnight','city lights'],g:{'R&B':3,'Electro':2,'Rap/Hip Hop':2,'Soul & Funk':1.5,'Jazz':1.5,'Pop':1,'Dance':1,'Alternative':1,'Folk':-1,'Country':-1.5,'Salsa':-1}},
  vento:{bpm:[100,140],fl:['road trip','driving','free','highway'],g:{'Rock':2.5,'Alternative':2.5,'Pop':1.5,'Country':1.5,'Folk':1.5,'Electro':1,'Dance':.5,'Classical':-1,'Reggaeton':-.5}}};
-const ANA={t:LS.get('mt_ana',{}),a:LS.get('mt_alb',{}),busy:false,done:0,total:0,
-  save(){LS.set('mt_ana',this.t);LS.set('mt_alb',this.a)}};
+const ANA={t:LS.get('mt_ana',{}),a:LS.get('mt_alb',{}),ar:LS.get('mt_art',{}),busy:false,done:0,total:0,
+  save(){LS.set('mt_ana',this.t);LS.set('mt_alb',this.a);LS.set('mt_art',this.ar)}};
+/* generi degli artisti da MusicBrainz (gratuito, 1 richiesta al secondo) */
+const TAGMAP=[[/reggaeton|urbano|dembow/,'Reggaeton'],[/salsa/,'Salsa'],[/cumbia/,'Cumbia'],[/latin|bachata|merengue|spanish pop/,'Latin Music'],[/metal/,'Metal'],[/hip hop|hip-hop|\brap\b|trap|drill|grime/,'Rap/Hip Hop'],[/r&b|rnb|rhythm and blues|neo soul/,'R&B'],[/soul|funk|disco|motown/,'Soul & Funk'],[/house|techno|edm|eurodance|trance|\bdance\b|club/,'Dance'],[/electronic|electronica|ambient|synthwave|downtempo|trip hop|lo-fi|lofi|chillout|idm|synth/,'Electro'],[/alternative|indie|shoegaze|dream pop|post-rock|emo\b|grunge/,'Alternative'],[/punk|rock/,'Rock'],[/folk|singer-songwriter|singer songwriter|acoustic|cantautor/,'Folk'],[/jazz|swing|bossa/,'Jazz'],[/classical|composer|orchestral|opera|^baroque$|romantic era|^piano$/,'Classical'],[/blues/,'Blues'],[/country|americana|bluegrass/,'Country'],[/reggae|dancehall|\bska\b/,'Reggae'],[/afrobeat|amapiano|^afro/,'African Music'],[/soundtrack|film score|video game|\bscore\b/,'Films/Games'],[/k-pop|j-pop|c-pop|anime/,'Asian Music'],[/brazil|\bmpb\b|samba|forr[oó]/,'Brazilian Music'],[/\bpop\b/,'Pop']];
+const MB={last:0,async q(name){const wait=this.last+1150-Date.now();if(wait>0)await sleep(wait);this.last=Date.now();
+  const r=await fetch('https://musicbrainz.org/ws/2/artist/?fmt=json&limit=3&query='+encodeURIComponent('artist:"'+name.replace(/"/g,'')+'"'));if(r.status===503){await sleep(2000);return this.q(name)}if(!r.ok)throw new Error('mb '+r.status);return r.json()}};
+async function analyzeArtist(ar){if(!ar||!ar.id||ANA.ar[ar.id])return;const j=await MB.q(ar.name);const low=s=>(s||'').toLowerCase();
+  const a=(j.artists||[]).find(x=>low(x.name)===low(ar.name)&&(x.score||0)>=90)||(j.artists||[]).find(x=>(x.score||0)>=98);const prof={};let tot=0;
+  for(const tg of(a?.tags||[])){const n=low(tg.name),w=Math.max(.5,tg.count||0),hits=[...new Set(TAGMAP.filter(([re])=>re.test(n)).map(x=>x[1]))];if(!hits.length)continue;for(const h of hits){prof[h]=(prof[h]||0)+w/hits.length;tot+=w/hits.length}}
+  for(const k in prof)prof[k]=Math.round(prof[k]/tot*100)/100;ANA.ar[ar.id]=prof}
+async function analyzeArtists(list,onProg){const todo=[];const seen=new Set();for(const t of list){const a=t?.artists?.[0];if(a&&a.id&&!ANA.ar[a.id]&&!seen.has(a.id)){seen.add(a.id);todo.push(a)}}
+  let fails=0,done=0;for(const a of todo){if(fails>4)break;try{await analyzeArtist(a)}catch{fails++}done++;onProg&&onProg(done,todo.length);if(done%10===0)ANA.save()}ANA.save();return todo.length}
+/* distribuzione di generi di un brano: artista (MusicBrainz) se c'è, altrimenti album (Deezer) */
+function trackGenres(t){const p=ANA.ar[t.artists?.[0]?.id];if(p&&Object.keys(p).length)return p;const a=ANA.t[t.id];return a&&a.g?{[a.g]:1}:null}
 let dzN=0;
 function dzRaw(path){return new Promise((res,rej)=>{const cb='__dz'+(++dzN)+'_'+Date.now();const s=document.createElement('script');let fin=false;
   const end=()=>{fin=true;clearTimeout(to);try{delete window[cb]}catch{window[cb]=undefined}s.remove()};
@@ -703,7 +718,8 @@ const DZ={st:[],async call(path,retry=0){for(;;){const now=Date.now();this.st=th
 const cleanTitle=s=>s.replace(/\s*[\(\[].*?[\)\]]/g,'').replace(/\s+-\s+.*$/,'').trim();
 async function analyzeTrack(t){if(ANA.t[t.id])return ANA.t[t.id];
   let d=null;if(t.isrc)d=await DZ.call('/track/isrc:'+encodeURIComponent(t.isrc));
-  if(!d||!d.id){const q=`artist:"${(t.artists[0]?.name||'').replace(/"/g,'')}" track:"${cleanTitle(t.name).replace(/"/g,'')}"`;const sr=await DZ.call('/search/track?limit=1&q='+encodeURIComponent(q));const h=sr?.data?.[0];if(h)d=await DZ.call('/track/'+h.id)}
+  if(!d||!d.id){const ar=(t.artists[0]?.name||'').replace(/"/g,''),ti=cleanTitle(t.name).replace(/"/g,'');const sr=await DZ.call('/search/track?limit=5&q='+encodeURIComponent(ar+' '+ti));
+    const low=x=>(x||'').toLowerCase();const h=(sr?.data||[]).find(x=>low(x.artist?.name).includes(low(ar).slice(0,6))&&low(x.title).includes(low(ti).slice(0,8)))||null;if(h)d=await DZ.call('/track/'+h.id)}
   const r={b:0,g:''};
   if(d&&d.id){r.b=Math.round(d.bpm||0);const al=d.album?.id;if(al){if(ANA.a[al]===undefined){const A=await DZ.call('/album/'+al);ANA.a[al]=(A?.genres?.data||[]).map(x=>x.name).find(n=>n&&n!=='All')||''}r.g=ANA.a[al]||''}}
   ANA.t[t.id]=r;return r}
@@ -713,11 +729,11 @@ async function analyzeAll(list,onProg){const todo=[];const seen=new Set();for(co
   const w=async()=>{while(i<todo.length&&fails<6){const t=todo[i++];try{await analyzeTrack(t)}catch{fails++}done++;onProg&&onProg(done,todo.length)}};
   await Promise.all([w(),w(),w(),w()]);ANA.save();return todo.length}
 const favPool=()=>[...D.topS,...D.topM,...D.saved,...D.recent];
-async function analyzeLibrary(){if(ANA.busy||!D.loaded)return;ANA.busy=true;
-  try{await analyzeAll(favPool(),(d,t)=>{ANA.done=d;ANA.total=t;if(d%5===0||d===t)updAnaUI()})}finally{ANA.busy=false;ANA.total=0;updAnaUI()}}
+async function analyzeLibrary(){if(ANA.busy||!D.loaded)return;ANA.busy=true;const pr={a:[0,0],b:[0,0]};const upd=()=>{ANA.done=pr.a[0]+pr.b[0];ANA.total=pr.a[1]+pr.b[1];updAnaUI()};
+  try{await Promise.all([analyzeAll(favPool(),(d,t)=>{pr.a=[d,t];if(d%5===0||d===t)upd()}),analyzeArtists(favPool(),(d,t)=>{pr.b=[d,t];upd()})])}finally{ANA.busy=false;ANA.total=0;updAnaUI()}}
 function updAnaUI(){const el=$('#anaInfo');if(el)el.innerHTML=anaInfoHTML()}
 /* quali generi ascolti tu (dai preferiti analizzati) */
-function userGenres(){const c={};let n=0;for(const t of favPool()){const a=ANA.t[t.id];if(a&&a.g){c[a.g]=(c[a.g]||0)+1;n++}}const out={};for(const k in c)out[k]=c[k]/n;return out}
+function userGenres(){const c={};let n=0;for(const t of favPool()){const g=trackGenres(t);if(!g)continue;for(const k in g)c[k]=(c[k]||0)+g[k];n++}const out={};for(const k in c)out[k]=c[k]/n;return out}
 /* generi giusti per il meteo, pesati sui tuoi gusti */
 function moodGenres(mood){const P=PROFILE[mood].g,u=userGenres(),has=Object.keys(u).length>0;
   return Object.entries(P).filter(([,w])=>w>0).map(([g,w])=>[g,w*(has?(.25+(u[g]||0)*4):1)]).sort((a,b)=>b[1]-a[1]).map(x=>x[0])}
@@ -725,15 +741,17 @@ function anaInfoHTML(){const m=WX.mood,gs=moodGenres(m).slice(0,4).map(g=>GENRE_
   return `<span class="gl">${ic('sparkle')}Generi adatti: ${gs.map(g=>`<b class="chip">${esc(g)}</b>`).join('')}</span>${ANA.busy&&ANA.total?`<span class="gl sub">Sto imparando i tuoi generi… ${ANA.done}/${ANA.total}</span>`:''}`}
 function bpmFit(b,[lo,hi]){const c=[b];if(b>135)c.push(b/2);if(b<75)c.push(b*2);return Math.max(...c.map(x=>x>=lo&&x<=hi?1:1-Math.min(1,Math.min(Math.abs(x-lo),Math.abs(x-hi))/25)))}
 /* punteggio di affinità col meteo: null = da escludere */
-function moodFit(t,mood){const a=ANA.t[t.id],P=PROFILE[mood];if(!a)return{s:-.6,known:false};let s=0;
-  if(a.g){const w=P.g[a.g]??0;if(w<=-1.5)return null;s+=w*1.6}else s-=.4;
-  if(a.b>0)s+=bpmFit(a.b,P.bpm)*2-.8;return{s,known:!!a.g,g:a.g,b:a.b}}
+function moodFit(t,mood){const a=ANA.t[t.id],P=PROFILE[mood],ap=ANA.ar[t.artists?.[0]?.id];if(!a&&!ap)return{s:-.6,known:false};let s=0,g=0,known=false;
+  if(ap&&Object.keys(ap).length){known=true;for(const k in ap){const w=P.g[k]??0;if(ap[k]>=.35&&w<=-1.5)return null;g+=ap[k]*w}}
+  if(a&&a.g){const w=P.g[a.g]??0;if(!known&&w<=-1.5)return null;g=known?g*.7+w*.3:w;known=true}
+  s+=known?g*1.6:-.4;if(a&&a.b>0)s+=bpmFit(a.b,P.bpm)*1.5-.6;return{s,known}}
+const mainGenre=t=>{const g=trackGenres(t);if(!g)return'';return Object.entries(g).sort((a,b)=>b[1]-a[1])[0][0]}
 const sessionPlayed=new Set();
 async function buildMix(mood,n=40,exclude=new Set(),onProg){const M=MOODS[mood],P=PROFILE[mood],pool=new Map();
   const add=(list,src)=>list.forEach(t=>{if(!t||exclude.has(t.id))return;const e=pool.get(t.id)||{t,src:new Set()};e.src.add(src);pool.set(t.id,e)});
   add(D.topS,'fav');add(D.topM,'fav');add(D.saved,'fav');add(D.recent,'fav');
   /* artisti tuoi il cui genere va bene con questo meteo */
-  const artG={};for(const t of favPool()){const a=ANA.t[t.id];const ar=t.artists[0];if(!ar||!a||!a.g)continue;(artG[ar.id]=artG[ar.id]||{name:ar.name,c:{}}).c[a.g]=(artG[ar.id].c[a.g]||0)+1}
+  const artG={};for(const t of favPool()){const g=mainGenre(t);const ar=t.artists[0];if(!ar||!g)continue;(artG[ar.id]=artG[ar.id]||{name:ar.name,c:{}}).c[g]=(artG[ar.id].c[g]||0)+1}
   const goodArts=Object.values(artG).map(x=>{const g=Object.entries(x.c).sort((a,b)=>b[1]-a[1])[0][0];return{name:x.name,w:P.g[g]??0}}).filter(x=>x.w>=1);
   const reqs=[];pick(goodArts.length?goodArts:D.topA.slice(0,12).map(a=>({name:a.name})),2).forEach(a=>reqs.push(['artist',`artist:"${a.name}"`,0]));
   const gens=moodGenres(mood).slice(0,4);pick(gens.slice(0,3),3).forEach(g=>reqs.push(['disc',`${GENRE_Q[g]||g} ${pick(P.fl,1)[0]}`,Math.floor(Math.random()*3)*10]));
@@ -747,7 +765,7 @@ async function buildMix(mood,n=40,exclude=new Set(),onProg){const M=MOODS[mood],
     const f=moodFit(t,mood);if(!f&&lt<=0)continue;
     let s=Math.random()*1.5+(f?f.s:0),hit=null;for(const[k,re]of kwRe)if(re.test(txt)){s+=2.5;hit=k;break}
     s+=lt*4+la*1.5;if(e.src.has('fav'))s+=1.2;if(e.src.has('artist'))s+=.8;if(e.src.has('disc'))s+=.6;if(sessionPlayed.has(t.id))s-=6;
-    const a=ANA.t[t.id],gl=a&&a.g?(GENRE_IT[a.g]||a.g)+(a.b?' · '+a.b+' BPM':''):'';
+    const a=ANA.t[t.id],mg=mainGenre(t),gl=mg?(GENRE_IT[mg]||mg)+(a&&a.b?' · '+a.b+' BPM':''):'';
     const reason=lt>0||la>0.9?'Imparato':gl||(hit?'“'+hit+'”':e.src.has('disc')?'Scoperta':'Preferito');
     scored.push({t,s,reason,kind:e.src.has('fav')||e.src.has('artist')?'fav':'disc'})}
   scored.sort((a,b)=>b.s-a.s);
@@ -764,7 +782,7 @@ const Q={mode:null,list:[],idx:-1,mood:null,ctxLabel:''};
 const PB={sdk:null,sdkId:null,deviceId:null,st:null,userPaused:false,adv:false,poll:0,liked:new Map(),vol:cfg.vol/100,muted:false};
 async function startMix(){if(!D.loaded){toast('Sto ancora caricando la tua musica…','music');return}
   const b=$('#mixStart');b&&(b.disabled=true);renderMixList(null);
-  try{const l=await buildMix(WX.mood);if(!l.length){toast('Nessun brano trovato, riprova','alert');return}
+  try{const l=await buildMix(WX.mood,40,new Set(),(d,t)=>{const bb=$('#mixStart');if(bb)bb.innerHTML=`${ic('sparkle')} Analizzo i brani… ${d}/${t}`});if(!l.length){toast('Nessun brano trovato, riprova','alert');return}
     Object.assign(Q,{mode:'meteo',list:l,idx:-1,mood:WX.mood,ctxLabel:'Meteo Mix · '+MOODS[WX.mood].nome});await playAt(0)}
   catch(e){toast(e.message,'alert')}finally{b&&(b.disabled=false);renderMixList()}}
 async function adaptQueue(m){try{const ex=new Set(Q.list.slice(0,Q.idx+1).map(t=>t.id));const l=await buildMix(m,40,ex);Q.list=Q.list.slice(0,Q.idx+1).concat(l);Q.mood=m;Q.ctxLabel='Meteo Mix · '+MOODS[m].nome;renderMixList();renderNow()}catch(e){toast(e.message,'alert')}}
@@ -928,7 +946,7 @@ function rowHTML(t,i,o={}){return`<div class="row" data-id="${t.id}" data-i="${i
 <img class="rc" loading="lazy" src="${esc(t.img)}" alt="" onerror="this.style.visibility='hidden'">
 <div class="rt"><b>${esc(t.name)}</b><span>${esc(artistsTxt(t))}</span></div>
 <div class="ra">${esc(t.album)}</div>
-${o.reason&&t.reason?`<span class="chip ${t.reason==='Preferito'||t.reason==='Tuo artista'?'dim':''}">${esc(t.reason)}</span>`:'<span></span>'}
+${o.reason&&t.reason?`<span class="chip ${t.src==='fav'||t.reason==='Preferito'?'dim':''}" title="${t.src==='fav'?'Dai tuoi preferiti':'Nuova scoperta'}">${t.src==='disc'?'✦ ':''}${esc(t.reason)}</span>`:'<span></span>'}
 ${o.fb?`<div class="fb fbx"><button class="ib sm" data-act="up" data-ic="thumbUp" title="Perfetto con questo meteo">${ic('thumbUp')}</button><button class="ib sm" data-act="down" data-ic="thumbDown" title="Non con questo meteo">${ic('thumbDown')}</button></div>`:'<span></span>'}
 <div class="rd">${fmt(t.dur)}</div>
 <button class="ib sm" data-act="more" data-ic="more" title="Altro">${ic('more')}</button></div>`}
@@ -974,7 +992,7 @@ function renderHomeWeather(){const el=$('#homeW');if(!el)return;const m=WX.mood,
 function renderMeteo(soft){const v=$('#v-meteo'),m=WX.mood,M=MOODS[m];
   const hero=`<section class="glass hero"><div class="hero-top"><div class="wbig">${wi(m)}</div><div><div class="kick">${ic('pin')}${esc(WX.name||'')}${cfg.sim?' · meteo simulato':''}</div><h1>${M.nome}</h1><p class="sub">${M.desc}${WX.ok?` · ${WX.temp}° (percepiti ${WX.feels}°) · ${WCODE[WX.code]||''} · vento ${WX.wind} km/h`:''}</p></div></div>
   <div class="hero-act"><button class="btn pri" id="mixStart" data-ic="play">${ic('play')} ${Q.mode==='meteo'?'Ricomincia il mix':'Avvia Meteo Mix'}</button><button class="btn" id="mixRegen" data-ic="refresh">${ic('refresh')} Rigenera coda</button><span class="sp"></span><span class="lbl">Adattamento automatico <span id="autoTog"></span></span></div>
-  <div class="sim"><span class="sub" style="font-size:12.5px;font-weight:600;margin-right:4px">Prova un meteo:</span><button class="chipbtn ${!cfg.sim?'on':''}" data-sim="">${ic('pin')}Reale</button>${MOOD_ORDER.map(k=>`<button class="chipbtn ${cfg.sim===k?'on':''}" data-sim="${k}"><span class="wi">${wi(k)}</span>${MOODS[k].nome}</button>`).join('')}</div></section>`;
+  <div class="sim"><span class="sub" style="font-size:12.5px;font-weight:600;margin-right:4px">Prova un meteo:</span><button class="chipbtn ${!cfg.sim?'on':''}" data-sim="">${ic('pin')}Reale</button>${MOOD_ORDER.map(k=>`<button class="chipbtn ${cfg.sim===k?'on':''}" data-sim="${k}"><span class="wi">${wi(k)}</span>${MOODS[k].nome}</button>`).join('')}</div><div class="ana" id="anaInfo">${anaInfoHTML()}</div></section>`;
   const hrs=WX.hours;let prevM=WX.real,firstChg=null;
   const fc=hrs.length?`<section class="glass" style="padding:20px;margin-top:18px"><h3>Prossime ore</h3><div class="fc">${hrs.map(h=>{const ch=h.mood!==prevM;prevM=h.mood;if(ch&&!firstChg)firstChg=h;return`<div class="h ${ch?'chg':''}" title="${MOODS[h.mood].nome}"><span>${h.t.slice(11,16)}</span><span class="wi">${wi(h.mood)}</span><b>${h.temp}°</b></div>`}).join('')}</div>${!cfg.sim&&firstChg?`<div class="note">${ic('sparkle')}Alle ${firstChg.t.slice(11,16)} si passa a ${MOODS[firstChg.mood].nome}: ${cfg.auto?'la coda si adatterà da sola.':'attiva l\'adattamento automatico per seguirlo.'}</div>`:''}</section>`:'';
   const qs=Q.mode==='meteo'?`<div class="stats"><span>Coda: <b>${Q.list.length-Q.idx-1}</b> brani in arrivo</span><span>Preferiti/scoperte: <b>${cfg.mix}% / ${100-cfg.mix}%</b></span><span>Brani imparati per ${M.nome}: <b>${Object.keys(learn[m]||{}).filter(k=>k.startsWith('t:')).length}</b></span></div>`:'';
@@ -1086,7 +1104,7 @@ async function loadLibrary(){D.err=null;const g=p=>api(p).catch(e=>{D.err=D.err|
   const[a,s,m,sv,r,pl]=await Promise.all([g('/me/top/artists?limit=20&time_range=short_term'),g('/me/top/tracks?limit=50&time_range=short_term'),g('/me/top/tracks?limit=50&time_range=medium_term'),g('/me/tracks?limit=50'),g('/me/player/recently-played?limit=50'),g('/me/playlists?limit=50')]);
   D.topA=a?.items||[];D.topS=(s?.items||[]).map(norm).filter(Boolean);D.topM=(m?.items||[]).map(norm).filter(Boolean);
   D.saved=(sv?.items||[]).map(x=>norm(x.track||x.item)).filter(Boolean);D.savedMore=!!sv?.next;D.recent=(r?.items||[]).map(x=>norm(x.track)).filter(Boolean);D.playlists=(pl?.items||[]).filter(Boolean);
-  D.loaded=true;if(D.err)toast(D.err.message,'alert',6000);if(!D.topS.length&&!D.saved.length&&!D.recent.length)toast('Pochi dati d\'ascolto: il mix userà soprattutto scoperte','music',5000);
+  D.loaded=true;setTimeout(analyzeLibrary,1500);if(D.err)toast(D.err.message,'alert',6000);if(!D.topS.length&&!D.saved.length&&!D.recent.length)toast('Pochi dati d\'ascolto: il mix userà soprattutto scoperte','music',5000);
   if(curView==='home')renderHome();if(curView==='library')renderLibrary()}
 async function startApp(){$('#onb').classList.remove('on');try{D.me=await api('/me')}catch(e){if(e.status===403)toast('Account non abilitato: aggiungilo agli utenti dell\'app Spotify','alert',7000);showOnboard();return}
   renderUser();initSDK();show('home');loadLibrary();setVol(PB.vol);setTimeout(moveToApp,1500)}
