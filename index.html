@@ -222,6 +222,11 @@ h3{font-size:16px;font-weight:700;margin-bottom:12px;display:flex;align-items:ce
 .ana{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;font-size:12.5px;font-weight:600;color:var(--tx2)}
 .ana .gl{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}.ana .gl>svg{width:15px;height:15px;color:var(--acc)}
 .ana .chip{font-size:11.5px}
+.spemb{padding:14px;display:flex;flex-direction:column;gap:12px}
+.spemb-h{display:flex;gap:10px;align-items:center;font-size:13px;color:var(--tx2)}.spemb-h svg{width:20px;height:20px;flex:none}
+.spemb-f{position:relative;height:min(70vh,640px);border-radius:14px;overflow:hidden}
+.spemb-f .skel{position:absolute;inset:0;border-radius:14px}
+.spemb-f iframe{position:relative;width:100%;height:100%;border:0;opacity:0;transition:opacity .4s}.spemb-f iframe.on{opacity:1}
 /* cerca */
 .searchbox{display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:30px;max-width:640px}
 .searchbox svg{width:20px;height:20px;color:var(--tx2)}
@@ -1106,7 +1111,9 @@ function renderLibrary(){const v=$('#v-library');const f=cfg.libF||'all';
 function plView(head,tracks,o){show('playlist');const v=$('#v-playlist');v.innerHTML=`<button class="back" id="pBack">${ic('arrow')} Libreria</button><div class="pl-head">${head.img?`<img class="cv" src="${esc(head.img)}" alt="">`:`<div class="cv">${ic(head.icon||'music')}</div>`}<div><div class="kick">${esc(head.kind)}</div><h1 style="margin:6px 0">${esc(head.title)}</h1><p class="sub">${esc(head.sub)}</p><div style="display:flex;gap:10px;margin-top:16px"><button class="btn pri" id="pPlay">${ic('play')} Riproduci</button>${head.url?`<button class="btn" id="pOpen">${ic('spotify')} Spotify</button>`:''}</div></div></div><div id="pList">${tracks?'':skRows(8)}</div><div style="text-align:center;margin-top:14px" id="pMoreW"></div>`;
   $('#pBack').onclick=()=>show('library');$('#pPlay').onclick=head.play;if(head.url)$('#pOpen').onclick=()=>window.open(head.url,'_blank');if(tracks)fillList($('#pList'),tracks,o)}
 async function openPlaylist(p){const mine=isMine(p);const head={img:pickImg(p.images,300),kind:mine?'Playlist':'Playlist seguita',title:p.name,sub:(p.owner?.display_name||'')+(mine?' · '+plCount(p)+' brani':''),url:p.external_urls?.spotify,play:()=>playContext(p.uri,p.name)};plView(head,null);
-  const locked=()=>{const l=$('#pList');if(l)l.innerHTML=`<div class="glass empty">${ic('library').replace('<svg','<svg style="color:var(--acc)"')}<b style="color:var(--tx);display:block">Elenco brani non disponibile</b><div style="margin-top:4px;max-width:460px;margin-inline:auto">Spotify mostra i brani solo delle playlist create da te o di cui sei collaboratore. Questa la puoi comunque <b>riprodurre</b> con il tasto sopra, oppure salvarne una copia su Spotify per vederla qui.</div></div>`};
+  const locked=()=>{const l=$('#pList');if(!l)return;const dark=document.documentElement.dataset.theme!=='light';
+    l.innerHTML=`<div class="spemb glass"><div class="spemb-h">${ic('spotify')}<span>Elenco brani dal riquadro ufficiale di Spotify. Per ascoltarla in Meteora usa <b>Riproduci</b> qui sopra.</span></div><div class="spemb-f"><div class="skel"></div><iframe title="Brani di ${esc(p.name)}" src="https://open.spotify.com/embed/playlist/${encodeURIComponent(p.id)}?utm_source=generator${dark?'&theme=0':''}" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe></div></div>`;
+    const f=$('iframe',l);f.onload=()=>f.classList.add('on')};
   if(!mine){locked();return}
   let all=[],off=0,total=Infinity;const load=async()=>{let j;try{j=await api(`/playlists/${p.id}/items?limit=50&offset=${off}`)}catch(e){if(e.status===404)j=await api(`/playlists/${p.id}/tracks?limit=50&offset=${off}`);else throw e}
     total=j.total;const tr=(j.items||[]).map(x=>norm(x.item||x.track)).filter(Boolean);all=all.concat(tr);off+=50;
@@ -1271,7 +1278,7 @@ function showOnboard(){const o=$('#onb');o.classList.add('on');const fileMode=lo
 
 
 /* ---------- aggiornamenti automatici ---------- */
-const APP_VER='2026.10.11-2';let updShown=false;
+const APP_VER='2026.10.11-3';let updShown=false;
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 async function checkUpdate(manual){if(location.protocol==='file:')return'err';try{const j=await(await fetch('version.json?t='+Date.now(),{cache:'no-store'})).json();if(!j.v||j.v===APP_VER)return'same';
   const go=()=>{LS.set('mt_updated',j.v);location.reload()};if(manual||!PB.st||PB.st.paused){setTimeout(go,manual?600:0);return'new'}
