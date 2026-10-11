@@ -273,6 +273,7 @@ h3{font-size:16px;font-weight:700;margin-bottom:12px;display:flex;align-items:ce
 .srow>div b{display:block;font-weight:600}.srow>div span{font-size:12px;color:var(--tx2)}
 .field{display:flex;align-items:center;gap:8px;width:100%;padding:11px 14px;border-radius:12px;background:var(--glass2);border:1px solid var(--line);transition:box-shadow .2s}
 .field:focus-within{box-shadow:0 0 0 2px color-mix(in srgb,var(--acc) 55%,transparent)}
+.field>svg{width:18px;height:18px;flex:none;color:var(--tx2)}
 .field input{flex:1;background:none;border:0;outline:0;min-width:0}
 .seg{display:inline-flex;padding:3px;border-radius:12px;background:var(--glass2);border:1px solid var(--line);position:relative}
 .seg button{padding:7px 13px;border-radius:9px;font-weight:600;font-size:12.5px;color:var(--tx2);transition:color .2s,background .3s}
@@ -322,6 +323,43 @@ h3{font-size:16px;font-weight:700;margin-bottom:12px;display:flex;align-items:ce
 .liquid .ib:active{transform:scale(1.12,.9);transition-duration:.12s}
 .liquid .card:active{transform:scale(.97);transition-duration:.12s}
 .notrans.liquid .btn,.notrans.liquid .ib{transition:none}
+/* Momenti */
+.mosaic{position:relative;width:100%;height:100%;display:grid;place-items:center;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff;overflow:hidden}
+.mosaic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.mosaic.four{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}.mosaic.four img{position:static}
+.mosaic>i{position:absolute;right:8px;top:8px;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:rgba(0,0,0,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.mosaic>i svg{width:16px;height:16px}.mosaic.empty svg{width:42%;height:42%;opacity:.9}
+.mosaic.big{width:180px;height:180px;border-radius:16px;flex:none;box-shadow:0 18px 40px rgba(0,0,0,.4)}
+.pl-head .kick svg{width:14px;height:14px}
+.row.mnow{background:color-mix(in srgb,var(--acc) 14%,transparent)}
+.btn.sm{padding:8px 11px;font-size:12px}.btn.wide{width:100%;justify-content:center}
+.modal.me{width:min(640px,100%)}
+.me-head{display:flex;align-items:center;gap:14px;margin-bottom:18px}.me-head img{width:56px;height:56px;border-radius:10px;object-fit:cover}
+.me-head b{display:block;font-size:16px}.me-head span{color:var(--tx2);font-size:13px}
+.me-tl{position:relative;height:84px;border-radius:14px;background:var(--glass2);border:1px solid var(--line);cursor:pointer;touch-action:none;overflow:visible;user-select:none}
+.me-bars{position:absolute;inset:10px 8px;display:flex;align-items:center;gap:2px}
+.me-bars i{flex:1;border-radius:2px;background:color-mix(in srgb,var(--tx) 22%,transparent);transition:background .25s}
+.me-bars i.in{background:var(--acc)}
+.me-sel{position:absolute;top:0;bottom:0;background:color-mix(in srgb,var(--acc) 16%,transparent);border-top:2px solid var(--acc);border-bottom:2px solid var(--acc)}
+.me-ph{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;background:var(--tx);border-radius:2px;box-shadow:0 0 8px rgba(255,255,255,.6);pointer-events:none}
+.me-h{position:absolute;top:-8px;bottom:-8px;width:18px;margin-left:-9px;display:flex;align-items:flex-start;justify-content:center;pointer-events:none}
+.me-h::before{content:'';position:absolute;top:8px;bottom:8px;width:4px;border-radius:3px;background:var(--acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 30%,transparent)}
+.me-h b{position:relative;margin-top:-16px;font-size:10px;font-weight:800;background:var(--acc);color:#fff;border-radius:6px;padding:1px 5px}
+.me-tl.drag .me-h::before{transform:scaleX(1.3)}
+.me-times{display:flex;justify-content:space-between;align-items:center;margin:10px 2px 14px;font-size:13px;color:var(--tx2)}
+.me-times b{color:var(--tx);font-variant-numeric:tabular-nums}.me-len{font-weight:800;color:var(--acc)}
+.me-ctl{display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;margin-bottom:12px}
+.me-grp{display:flex;gap:6px;align-items:center}
+.me-sugg{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.me-sugg .chipbtn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:20px;background:var(--glass);border:1px solid var(--line);font-size:12.5px;font-weight:600;color:var(--tx2);transition:all .25s}
+.me-sugg .chipbtn svg{width:14px;height:14px}
+.me-sugg .chipbtn.on{background:color-mix(in srgb,var(--acc) 22%,transparent);color:var(--tx);border-color:color-mix(in srgb,var(--acc) 50%,transparent)}
+.fpg{position:relative}.mreg{position:absolute;top:4px;height:14px;border-radius:7px;background:color-mix(in srgb,var(--acc) 35%,transparent);pointer-events:none}
+.mlab{display:inline-flex;align-items:center;gap:4px;color:var(--acc)}.mlab svg{width:14px;height:14px}
+.ftitle #fMom{width:42px;height:42px}.ftitle #fMom svg{width:21px;height:21px}
+.icons [data-ic=scissors]:hover svg{transform:rotate(-18deg) scale(1.1)}
+#sideInst{color:var(--acc)}
+@media (max-width:820px){#sideInst{display:none}.mosaic.big{width:140px;height:140px}.nav{padding:7px 2px;font-size:9.5px;white-space:nowrap;min-width:0}.nav span{overflow:hidden;text-overflow:ellipsis;max-width:100%}.me-ctl{flex-direction:column}.me-grp{justify-content:space-between}.me-grp .btn:not(.sm){flex:1;justify-content:center}#bMom{display:none}}
 /* schermata in riproduzione */
 .now .cov,.now .tt b{cursor:pointer}
 .now .cov:hover{transform:scale(1.05)}
@@ -410,6 +448,7 @@ h1{font-size:28px}
     <button class="nav" data-view="meteo"></button>
     <button class="nav" data-view="search"></button>
     <button class="nav" data-view="library"></button>
+    <button class="nav" data-view="moments"></button>
     <button class="nav" data-view="settings"></button>
     <div class="side-w glass" id="sideW"></div>
     <div class="user" id="userBox"></div>
@@ -419,6 +458,7 @@ h1{font-size:28px}
     <section class="view" id="v-meteo"></section>
     <section class="view" id="v-search"></section>
     <section class="view" id="v-library"></section>
+    <section class="view" id="v-moments"></section>
     <section class="view" id="v-playlist"></section>
   </main>
   <footer id="player" class="glass">
@@ -433,6 +473,7 @@ h1{font-size:28px}
     </div>
     <div class="rgt">
       <button class="playbtn mob-play" id="bPlayM"></button>
+      <button class="ib" data-ic="scissors" id="bMom" title="Crea un momento"></button>
       <button class="ib" data-ic="heart" id="bLike" title="Mi piace"></button>
       <button class="ib" data-ic="devices" id="bDev" title="Dispositivo"></button>
       <button class="ib" data-ic="volume" id="bMute" title="Volume"></button>
@@ -459,6 +500,11 @@ const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ---------- icone ---------- */
 const P={
+scissors:'<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.1 15.9M14.5 14.5L20 20M8.1 8.1L12 12"/>',
+edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+up:'<path d="M12 19V5M6 11l6-6 6 6"/>',
+down:'<path d="M12 5v14M6 13l6 6 6-6"/>',
+install:'<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/><path d="M12 7v5M9.5 9.5L12 12l2.5-2.5"/>',
 home:'<path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/>',
 search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
 library:'<path d="M4 4v16M9 4v16"/><path d="M14 4.5l5 15"/>',
@@ -812,9 +858,9 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout
 async function playList(tracks,i,label){Object.assign(Q,{mode:'list',list:tracks,idx:i,mood:null,ctxLabel:label||''});sessionPlayed.add(tracks[i].id);
   const s=Math.max(0,i-20),slice=tracks.slice(s,s+60);await playBody({uris:slice.map(t=>t.uri),offset:{position:i-s}})}
 async function playContext(uri,label,offUri){Object.assign(Q,{mode:'context',list:[],idx:-1,mood:null,ctxLabel:label||'',ctxUri:uri});await playBody({context_uri:uri,...(offUri?{offset:{uri:offUri}}:{})})}
-async function next(){if(Q.mode==='meteo'){if(Q.idx+1>=Q.list.length-3){const ex=new Set(Q.list.map(t=>t.id));try{Q.list=Q.list.concat(await buildMix(WX.mood,25,ex))}catch{}}if(Q.idx+1<Q.list.length)return playAt(Q.idx+1)}
+async function next(){if(Q.mode==='moments')return momNext();if(Q.mode==='meteo'){if(Q.idx+1>=Q.list.length-3){const ex=new Set(Q.list.map(t=>t.id));try{Q.list=Q.list.concat(await buildMix(WX.mood,25,ex))}catch{}}if(Q.idx+1<Q.list.length)return playAt(Q.idx+1)}
   if(isSdk())return PB.sdk.nextTrack();try{await api('/me/player/next?device_id='+PB.deviceId,{method:'POST'})}catch(e){toast(e.message,'alert')}}
-async function prev(){const pos=curPos();if(pos>3000)return seek(0);if(Q.mode==='meteo'&&Q.idx>0)return playAt(Q.idx-1);
+async function prev(){const pos=curPos();if(Q.mode==='moments'){const it=Q.list[Q.idx];if(it&&pos-it.start>3000)return seek(it.start);return playMomentAt(Math.max(0,Q.idx-1))}if(pos>3000)return seek(0);if(Q.mode==='meteo'&&Q.idx>0)return playAt(Q.idx-1);
   if(isSdk())return PB.sdk.previousTrack();try{await api('/me/player/previous?device_id='+PB.deviceId,{method:'POST'})}catch(e){toast(e.message,'alert')}}
 async function togglePlay(){try{PB.sdk&&PB.sdk.activateElement&&PB.sdk.activateElement()}catch{}
   if(!PB.st){if(Q.mode==='meteo'&&Q.list.length)return playAt(Math.max(0,Q.idx));return startMix()}
@@ -874,10 +920,10 @@ function mediaSession(chg){if(!('mediaSession' in navigator))return;const ms=nav
   try{if(s.dur)ms.setPositionState({duration:s.dur/1000,playbackRate:1,position:Math.min(s.dur,curPos())/1000})}catch{}}
 /* ---------- UI: shell ---------- */
 let curView='home',viewStack=[];
-const NAVS={home:['home','Home'],meteo:['cloudsun','Meteo Mix'],search:['search','Cerca'],library:['library','Libreria'],settings:['settings','Impostazioni']};
+const NAVS={home:['home','Home'],meteo:['cloudsun','Meteo Mix'],search:['search','Cerca'],library:['library','Libreria'],moments:['scissors','Momenti'],settings:['settings','Impostazioni']};
 function buildShell(){$('#brandIc').innerHTML=wi('cloudsun');
   $$('#side .nav').forEach(b=>{const[i,l]=NAVS[b.dataset.view];b.innerHTML=(i==='cloudsun'?`<span class="wi" style="width:21px;height:21px;display:inline-block">${wi('cloudsun')}</span>`:ic(i))+`<span>${l}</span>`;b.dataset.ic=i;b.onclick=()=>b.dataset.view==='settings'?openSettings():show(b.dataset.view)});
-  $('#bPrev').innerHTML=ic('prev');$('#bNext').innerHTML=ic('next');$('#bLike').innerHTML=ic('heart');$('#bDev').innerHTML=ic('devices');$('#bMute').innerHTML=ic(cfg.vol===0?'volumeMute':'volume');
+  $('#bPrev').innerHTML=ic('prev');$('#bNext').innerHTML=ic('next');$('#bLike').innerHTML=ic('heart');$('#bMom').innerHTML=ic('scissors');$('#bMom').onclick=()=>PB.st?openMomentEditor(PB.st):toast('Avvia un brano per crearne un momento','scissors');$('#bDev').innerHTML=ic('devices');$('#bMute').innerHTML=ic(cfg.vol===0?'volumeMute':'volume');
   $('#bPrev').onclick=prev;$('#bNext').onclick=next;$('#bPlay').onclick=togglePlay;$('#bPlayM').onclick=togglePlay;
   $('#bLike').onclick=()=>{$('#bLike').classList.remove('pop');void $('#bLike').offsetWidth;$('#bLike').classList.add('pop');toggleLike(PB.st?.id)};
   $('#bDev').onclick=e=>{e.stopPropagation();openMenuEl?closeMenu():devicesMenu()};
@@ -895,26 +941,26 @@ function closeFull(){const f=$('#full');if(!f.classList.contains('on'))return;do
 function fullKey(e){if(e.key==='Escape')closeFull()}
 const fullOpen=()=>$('#full').classList.contains('on')&&!$('#full').classList.contains('out');
 function renderFull(force){if(!fullOpen())return;const s=PB.st,f=$('#full');if(!s){closeFull();return}const playing=!s.paused;f.classList.toggle('paused',!playing);
-  if(force||FULL.id!==s.id){const first=FULL.id===null;FULL.id=s.id;const meteo=Q.mode==='meteo',mood=meteo&&Q.mood?Q.mood:WX.mood,up=meteo?Q.list.slice(Q.idx+1,Q.idx+9):[];
+  if(force||FULL.id!==s.id){const first=FULL.id===null;FULL.id=s.id;const meteo=Q.mode==='meteo',mi=Q.mode==='moments'&&Q.list[Q.idx]?.trackId===s.id?Q.list[Q.idx]:null,mood=meteo&&Q.mood?Q.mood:WX.mood,up=meteo?Q.list.slice(Q.idx+1,Q.idx+9):Q.mode==='moments'?momRows({items:Q.list.slice(Q.idx+1,Q.idx+9)}):[];
     f.innerHTML=`<div class="fbg">${s.img?`<i style="background-image:url('${esc(s.img)}')"></i>`:''}</div>
     <div class="fhead"><button class="ib" id="fClose" data-ic="chev" title="Chiudi">${ic('chev')}</button>
      <div class="fctx"><small>${meteo?'Meteo Mix':'In riproduzione da'}</small><b>${meteo?`<span class="wi">${wi(mood)}</span>${esc(MOODS[mood].nome)}${WX.temp!=null&&!cfg.sim?' · '+WX.temp+'°':''}`:esc(Q.ctxLabel||'Spotify')}</b></div>
      <button class="ib" id="fSp" data-ic="external" title="Apri su Spotify">${ic('external')}</button></div>
     <div class="fwrap"><div class="fcovw">${s.img?`<img class="fcov ${first?'':'chg'}" src="${esc(s.img)}" alt="">`:`<div class="fcov" style="display:grid;place-items:center;color:#fff">${ic('music').replace('<svg','<svg style="width:30%;height:30%"')}</div>`}</div>
-     <div class="finfo"><div class="ftitle"><div><h1>${esc(s.name)}</h1><p>${esc(artistsTxt(s))}</p></div><button class="ib ${PB.liked.get(s.id)?'liked':''}" id="fLike" data-ic="heart" title="Mi piace">${ic('heart')}</button></div>
-      <div class="fpg"><div class="sld" id="fProg"></div><div class="times"><span id="fCur">0:00</span><span id="fDur">${fmt(s.dur)}</span></div></div>
+     <div class="finfo"><div class="ftitle"><div><h1>${esc(s.name)}</h1><p>${esc(artistsTxt(s))}${mi?` · <b class="mlab">${ic('scissors')}${esc(mi.label||'Momento')}</b>`:''}</p></div><button class="ib" id="fMom" data-ic="scissors" title="Crea un momento">${ic('scissors')}</button><button class="ib ${PB.liked.get(s.id)?'liked':''}" id="fLike" data-ic="heart" title="Mi piace">${ic('heart')}</button></div>
+      <div class="fpg">${mi&&s.dur?`<div class="mreg" style="left:${mi.start/s.dur*100}%;width:${(mi.end-mi.start)/s.dur*100}%"></div>`:''}<div class="sld" id="fProg"></div><div class="times"><span id="fCur">0:00</span><span id="fDur">${fmt(s.dur)}</span></div></div>
       <div class="fctr"><button class="ib" data-ic="prev" id="fPrev">${ic('prev')}</button><button class="playbtn" id="fPlay">${ic(playing?'pause':'play')}</button><button class="ib" data-ic="next" id="fNext">${ic('next')}</button></div>
       <div class="fact glass"><span>Va bene con <b>${esc(MOODS[mood].nome)}</b>?</span><div><button class="ib" data-ic="thumbDown" id="fDown" title="Non con questo meteo">${ic('thumbDown')}</button><button class="ib" data-ic="thumbUp" id="fUp" title="Perfetta con questo meteo">${ic('thumbUp')}</button></div></div>
-      ${up.length?`<div class="fq glass"><h3>Prossimi nel mix</h3><div id="fQ"></div></div>`:(meteo?'':`<div class="fq glass" id="fQw" style="display:none"><h3>Prossimi in coda</h3><div id="fQ"></div></div>`)}</div></div>`;
-    $('#fClose').onclick=closeFull;$('#fPrev').onclick=prev;$('#fNext').onclick=next;$('#fPlay').onclick=togglePlay;$('#fSp').onclick=()=>window.open('https://open.spotify.com/track/'+s.id,'_blank');
+      ${up.length?`<div class="fq glass"><h3>${Q.mode==='moments'?'Prossimi momenti':'Prossimi nel mix'}</h3><div id="fQ"></div></div>`:(meteo?'':`<div class="fq glass" id="fQw" style="display:none"><h3>Prossimi in coda</h3><div id="fQ"></div></div>`)}</div></div>`;
+    $('#fClose').onclick=closeFull;$('#fMom').onclick=()=>openMomentEditor(PB.st);$('#fPrev').onclick=prev;$('#fNext').onclick=next;$('#fPlay').onclick=togglePlay;$('#fSp').onclick=()=>window.open('https://open.spotify.com/track/'+s.id,'_blank');
     const pop=b=>{b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop')};
     $('#fLike').onclick=e=>{const b=e.currentTarget;pop(b);toggleLike(s.id)};
     const cur=()=>(meteo&&Q.list[Q.idx]?.id===s.id)?Q.list[Q.idx]:{...s,mood};
     $('#fUp').onclick=e=>{pop(e.currentTarget);e.currentTarget.classList.add('liked');feedback(cur(),1)};
     $('#fDown').onclick=e=>{pop(e.currentTarget);feedback(cur(),-1)};
     FULL.prog=slider($('#fProg'),{value:s.dur?curPos()/s.dur:0,onChange:v=>seek(v*s.dur)});
-    const fq=$('#fQ');if(fq)fillList(fq,up,{reason:true,play:i=>playAt(Q.idx+1+i)});
-    if(!meteo)loadSpQueue(s.id);
+    const fq=$('#fQ');if(fq)fillList(fq,up,{reason:true,play:i=>Q.mode==='moments'?playMomentAt(Q.idx+1+i):playAt(Q.idx+1+i)});
+    if(!meteo&&Q.mode!=='moments')loadSpQueue(s.id);
     let y0=null;const w=$('.fwrap',f);w.addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse'&&!e.target.closest('.sld,button,.list'))y0=e.clientY});
     w.addEventListener('pointerup',e=>{if(y0!=null&&e.clientY-y0>110&&w.scrollTop<=0)closeFull();y0=null})}
   else{$('#fPlay').innerHTML=ic(playing?'pause':'play');$('#fDur').textContent=fmt(s.dur)}
@@ -929,13 +975,13 @@ function tick(){const s=PB.st;if(!s||document.hidden)return;if(s.paused&&PB._las
 function renderNow(chg){const s=PB.st,n=$('#now');const playing=s&&!s.paused;
   $('#bPlay').innerHTML=ic(playing?'pause':'play');$('#bPlayM').innerHTML=ic(playing?'pause':'play');
   if(!s){n.innerHTML=`<div class="cov" style="display:grid;place-items:center;color:var(--tx3)">${ic('music')}</div><div class="tt"><b>Niente in riproduzione</b><span>Avvia il Meteo Mix o scegli un brano</span></div>`;$('#tDur').textContent='0:00';$('#tCur').textContent='0:00';PB.prog.set(0);return}
-  if(chg||!n.dataset.id||n.dataset.id!==s.id){n.dataset.id=s.id;n.innerHTML=`<img class="cov" src="${esc(s.img)}" alt=""><div class="tt"><b>${esc(s.name)}</b><span>${esc(artistsTxt(s))}</span>${Q.ctxLabel?`<div class="mode-pill">${Q.mode==='meteo'?`<span class="wi" style="width:14px;height:14px;display:inline-block">${wi(Q.mood)}</span>`:ic('music')}<i>${esc(Q.ctxLabel)}</i></div>`:''}</div>`;n.classList.remove('chg');void n.offsetWidth;n.classList.add('chg')}
+  if(chg||!n.dataset.id||n.dataset.id!==s.id){n.dataset.id=s.id;n.innerHTML=`<img class="cov" src="${esc(s.img)}" alt=""><div class="tt"><b>${esc(s.name)}</b><span>${esc(artistsTxt(s))}</span>${Q.ctxLabel?`<div class="mode-pill">${Q.mode==='meteo'?`<span class="wi" style="width:14px;height:14px;display:inline-block">${wi(Q.mood)}</span>`:ic(Q.mode==='moments'?'scissors':'music')}<i>${esc(Q.ctxLabel)}</i></div>`:''}</div>`;n.classList.remove('chg');void n.offsetWidth;n.classList.add('chg')}
   if(fullOpen())renderFull();
   $('#tDur').textContent=fmt(s.dur);$$('.row.playing').forEach(r=>r.classList.toggle('paused',!playing))}
 function markPlaying(){const id=PB.st?.id,paused=PB.st?.paused;$$('.row').forEach(r=>{const on=r.dataset.id===id;r.classList.toggle('playing',on);r.classList.toggle('paused',on&&!!paused)})}
 function show(v,push=true){if(v!=='playlist')viewStack=[];curView=v;$$('#side .nav').forEach(b=>b.classList.toggle('on',b.dataset.view===v||(v==='playlist'&&b.dataset.view==='library')));
   $$('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));$('#main').scrollTop=0;
-  ({home:renderHome,meteo:()=>renderMeteo(),search:renderSearch,library:renderLibrary}[v]||(()=>{}))()}
+  ({home:renderHome,meteo:()=>renderMeteo(),search:renderSearch,library:renderLibrary,moments:renderMoments}[v]||(()=>{}))()}
 function renderSideW(){const m=WX.mood;$('#sideW').innerHTML=`<div class="wi">${wi(m)}</div><div><b>${WX.temp!=null?WX.temp+'° · ':''}${MOODS[m].nome}</b><span>${esc(WX.name||'')}${cfg.sim?' · simulato':''}</span></div>`}
 function renderUser(){const me=D.me;if(!me){$('#userBox').innerHTML='';return}const img=pickImg(me.images,64);
   $('#userBox').innerHTML=`${img?`<img src="${esc(img)}" alt="">`:'<div class="av"></div>'}<b>${esc(me.display_name||me.id)}</b><span style="width:20px;height:20px;display:inline-block">${ic('spotify')}</span>`}
@@ -959,11 +1005,12 @@ document.addEventListener('click',e=>{const row=e.target.closest('.row');if(!row
   if(act==='more'){e.stopPropagation();const r=e.target.closest('button').getBoundingClientRect();trackMenu(r.right-220,r.bottom+4,t,el,i);return}
   if(PB.st?.id===t.id){togglePlay();return}o.play?o.play(i):playList(el._t,i,o.label)});
 document.addEventListener('contextmenu',e=>{const row=e.target.closest('.row');if(!row)return;const el=row.closest('.list');if(!el||!el._t)return;e.preventDefault();const i=+row.dataset.i;trackMenu(e.clientX,e.clientY,el._t[i],el,i)});
-function trackMenu(x,y,t,el,i){const o=el._o||{};menu(x,y,[
+function trackMenu(x,y,t,el,i){const o=el._o||{};if(o.menu){menu(x,y,o.menu(t,i));return}menu(x,y,[
   {label:'Riproduci',icon:'play',act:()=>o.play?o.play(i):playList(el._t,i,o.label)},
   {label:'Riproduci dopo',icon:'queue',act:async()=>{if(Q.mode==='meteo'){Q.list.splice(Q.idx+1,0,{...t,reason:'Aggiunto da te',mood:WX.mood});renderMixList();toast('Aggiunto dopo il brano attuale','queue')}else{try{await api('/me/player/queue?uri='+encodeURIComponent(t.uri)+(PB.deviceId?'&device_id='+PB.deviceId:''),{method:'POST'});toast('Aggiunto in coda','queue')}catch(e){toast(e.message,'alert')}}}},
   '-',{label:`Perfetto con ${MOODS[WX.mood].nome}`,icon:'thumbUp',act:()=>feedback(t,1)},{label:`Non con ${MOODS[WX.mood].nome}`,icon:'thumbDown',act:()=>feedback(t,-1)},
   '-',{label:PB.liked.get(t.id)?'Togli da Mi piace':'Aggiungi a Mi piace',icon:'heart',act:()=>toggleLike(t.id)},
+  {label:'Crea momento',icon:'scissors',act:()=>openMomentEditor(t)},
   {label:'Apri su Spotify',icon:'external',act:()=>window.open('https://open.spotify.com/track/'+t.id,'_blank')}])}
 const skRows=n=>Array.from({length:n},()=>'<div class="skel sk-row"></div>').join('');
 const skCards=n=>`<div class="cards">${Array.from({length:n},()=>'<div class="skel sk-card"></div>').join('')}</div>`;
@@ -1042,6 +1089,107 @@ async function openPlaylist(p){const mine=isMine(p);const head={img:pickImg(p.im
 async function openSaved(){const head={kind:'Raccolta',icon:'heart',title:'Brani che ti piacciono',sub:'I tuoi preferiti su Spotify',play:()=>D.saved.length&&playList(D.saved,0,'Brani che ti piacciono')};plView(head,D.saved,{label:'Brani che ti piacciono'});
   const w=$('#pMoreW');const more=()=>{w.innerHTML=D.savedMore?`<button class="btn" id="pMore">${ic('plus')} Carica altri</button>`:'';const b=$('#pMore');if(b)b.onclick=async()=>{b.disabled=true;try{const j=await api('/me/tracks?limit=50&offset='+D.saved.length);D.saved=D.saved.concat((j.items||[]).map(x=>norm(x.track||x.item)).filter(Boolean));D.savedMore=!!j.next;fillList($('#pList'),D.saved,{label:'Brani che ti piacciono'});more()}catch(e){toast(e.message,'alert')}}};more()}
 
+/* ---------- Momenti: playlist di pezzi di canzoni ---------- */
+let MOM=LS.get('mt_moments',[]);const saveMom=()=>LS.set('mt_moments',MOM);
+const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-3);
+const momLen=L=>L.items.reduce((a,x)=>a+(x.end-x.start),0);
+const fmtS=ms=>{const s=Math.round(ms/1000);return s<60?s+' s':fmt(ms)};
+let PREV=null;const MW={started:0,busy:false,fade:0};
+/* mosaico di copertine */
+function mosaic(L,size=''){const im=[...new Set(L.items.map(x=>x.img).filter(Boolean))].slice(0,4);
+  if(!im.length)return`<div class="mosaic empty ${size}">${ic('scissors')}</div>`;
+  if(im.length<4)return`<div class="mosaic ${size}"><img src="${esc(im[0])}" alt=""><i>${ic('scissors')}</i></div>`;
+  return`<div class="mosaic four ${size}">${im.map(u=>`<img src="${esc(u)}" alt="">`).join('')}<i>${ic('scissors')}</i></div>`}
+/* vista elenco */
+function renderMoments(){const v=$('#v-moments');
+  v.innerHTML=`<div class="sec-h" style="flex-wrap:wrap;gap:12px"><div><h1>Momenti</h1><p class="sub" style="margin-top:6px">Solo i pezzi che ami: ritornelli, assoli, drop. Ogni momento parte e finisce dove vuoi tu.</p></div>
+   <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="momNewL" data-ic="plus">${ic('plus')} Nuova playlist</button><button class="btn pri" id="momNow" data-ic="scissors" ${PB.st?'':'disabled'}>${ic('scissors')} Momento dal brano in ascolto</button></div></div>
+   <div class="sec" id="momGrid"></div>`;
+  $('#momNow').onclick=()=>PB.st&&openMomentEditor(PB.st);
+  $('#momNewL').onclick=async()=>{const n=await promptBox('Nuova playlist di momenti','Nome','I miei ritornelli');if(n){MOM.unshift({id:uid(),name:n,items:[],repeat:false,created:Date.now()});saveMom();renderMoments()}};
+  const g=$('#momGrid');
+  if(!MOM.length){g.innerHTML=`<div class="glass empty">${ic('scissors').replace('<svg','<svg style="width:52px;height:52px;color:var(--acc);display:block;margin:0 auto 12px"')}<b style="color:var(--tx);display:block">Nessun momento ancora</b><div style="margin-top:6px;max-width:470px;margin-inline:auto">Mentre ascolti un brano tocca <b>✂ Momento</b> nel player (o “Crea momento” dal menu di un brano), scegli inizio e fine e salvalo in una playlist.</div></div>`;return}
+  g.innerHTML=`<div class="grid cas">${MOM.map((L,i)=>`<div class="card mcard" data-k="${i}" style="--i:${Math.min(i,16)}"><div class="cv">${mosaic(L)}<div class="pl">${ic('play')}</div></div><b>${esc(L.name)}</b><span>${L.items.length} moment${L.items.length===1?'o':'i'} · ${fmt(momLen(L))}</span></div>`).join('')}</div>`;
+  $$('.mcard',g).forEach(c=>{const L=MOM[+c.dataset.k];c.onclick=e=>{if(e.target.closest('.pl')){if(L.items.length)playMoments(L.id,0);else toast('Playlist vuota','scissors')}else openMomList(L.id)}})}
+function momRows(L){return L.items.map(x=>({...x,id:x.trackId,itemId:x.id,dur:x.end-x.start,album:fmt(x.start)+' – '+fmt(x.end),reason:x.label||'Momento',src:'fav'}))}
+function openMomList(id){const L=MOM.find(x=>x.id===id);if(!L){show('moments');return}
+  show('playlist');$$('#side .nav').forEach(b=>b.classList.toggle('on',b.dataset.view==='moments'));const v=$('#v-playlist');
+  v.innerHTML=`<button class="back" id="pBack">${ic('arrow')} Momenti</button><div class="pl-head">${mosaic(L,'big')}<div><div class="kick">${ic('scissors')}Playlist di momenti</div><h1 style="margin:6px 0">${esc(L.name)}</h1><p class="sub">${L.items.length} moment${L.items.length===1?'o':'i'} · ${fmt(momLen(L))} in tutto</p>
+   <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;align-items:center"><button class="btn pri" id="mPlay" ${L.items.length?'':'disabled'}>${ic('play')} Riproduci</button><button class="btn" id="mShuf" data-ic="refresh" ${L.items.length>1?'':'disabled'}>${ic('refresh')} Casuale</button><span class="lbl">Ripeti <span id="mRep"></span></span><button class="ib" id="mMore" data-ic="more" title="Altro">${ic('more')}</button></div></div></div><div id="pList"></div>`;
+  $('#pBack').onclick=()=>show('moments');$('#mPlay').onclick=()=>playMoments(L.id,0);$('#mShuf').onclick=()=>playMoments(L.id,0,true);
+  toggle($('#mRep'),!!L.repeat,on=>{L.repeat=on;saveMom();if(Q.mode==='moments'&&Q.momId===L.id)Q.repeat=on});
+  $('#mMore').onclick=e=>{e.stopPropagation();const r=e.currentTarget.getBoundingClientRect();menu(r.left-150,r.bottom+6,[
+    {label:'Rinomina',icon:'edit',act:async()=>{const n=await promptBox('Rinomina playlist','Nome',L.name);if(n){L.name=n;saveMom();openMomList(L.id)}}},
+    {label:'Aggiungi il brano in ascolto',icon:'scissors',act:()=>PB.st?openMomentEditor(PB.st,{listId:L.id}):toast('Niente in riproduzione','music')},
+    {label:'Esporta',icon:'download',act:()=>BACKUP.save('momenti-'+L.name.replace(/[^\w-]+/g,'_')+'.json',{meteora:2,moments:[L]}).then(ok=>ok&&toast('Momenti esportati','download'))},
+    '-',{label:'Elimina playlist',icon:'trash',act:async()=>{if(await confirmBox('Eliminare la playlist?',`“${L.name}” e i suoi momenti verranno cancellati.`,'Elimina')){MOM=MOM.filter(x=>x.id!==L.id);saveMom();show('moments');toast('Playlist eliminata','trash')}}}])};
+  fillList($('#pList'),momRows(L),{reason:true,label:'Momenti · '+L.name,empty:'Ancora nessun momento: aggiungili dal player con ✂',play:i=>playMoments(L.id,i),
+    menu:(t,i)=>[{label:'Riproduci da qui',icon:'play',act:()=>playMoments(L.id,i)},{label:'Modifica inizio e fine',icon:'edit',act:()=>openMomentEditor(L.items[i],{listId:L.id,itemId:L.items[i].id})},
+      {label:'Sposta su',icon:'up',act:()=>{if(i>0){[L.items[i-1],L.items[i]]=[L.items[i],L.items[i-1]];saveMom();openMomList(L.id)}}},{label:'Sposta giù',icon:'down',act:()=>{if(i<L.items.length-1){[L.items[i+1],L.items[i]]=[L.items[i],L.items[i+1]];saveMom();openMomList(L.id)}}},
+      '-',{label:'Ascolta il brano intero',icon:'music',act:()=>playBody({uris:[L.items[i].uri]})},{label:'Rimuovi',icon:'trash',act:()=>{L.items.splice(i,1);saveMom();openMomList(L.id);toast('Momento rimosso','trash')}}]})}
+/* editor: inizio/fine */
+function openMomentEditor(src,opt={}){const trackId=src.trackId||src.id,dur=src.dur&&!src.trackId?src.dur:(src.trackDur||src.dur||0);
+  const T={trackId,uri:src.uri||('spotify:track:'+trackId),name:src.name,artists:src.artists||[],album:src.album||'',img:src.img||'',dur:src.trackDur||dur};
+  if(!T.dur&&PB.st?.id===trackId)T.dur=PB.st.dur;if(!T.dur){toast('Durata del brano sconosciuta','alert');return}
+  const playingThis=()=>PB.st&&PB.st.id===trackId;
+  let A,B;if(src.start!=null){A=src.start;B=src.end}else if(playingThis()){const p=curPos();A=Math.max(0,p-15000);B=Math.min(T.dur,A+30000)}else{A=Math.round(T.dur*.28);B=Math.min(T.dur,A+30000)}
+  const editing=opt.itemId?MOM.find(x=>x.id===opt.listId)?.items.find(x=>x.id===opt.itemId):null;
+  let target=opt.listId||LS.get('mt_momLast',null);if(!MOM.find(x=>x.id===target))target=MOM[0]?.id||'__new';
+  const bars=Array.from({length:90},(_,i)=>{let h=0;for(let k=0;k<trackId.length;k++)h=(h*31+trackId.charCodeAt(k)*(i+7))%997;return 18+((h%70)+Math.sin(i/4)*14+14)}).map(h=>`<i style="height:${Math.min(100,h)}%"></i>`).join('');
+  const ov=modal(`<div class="mhd"><h2>${editing?'Modifica momento':'Nuovo momento'}</h2><button class="ib" data-close data-ic="close">${ic('close')}</button></div>
+   <div class="me-head"><img src="${esc(T.img)}" alt="" onerror="this.style.visibility='hidden'"><div><b>${esc(T.name)}</b><span>${esc(artistsTxt(T))}</span></div></div>
+   <div class="me-tl" id="meTl"><div class="me-bars">${bars}</div><div class="me-sel" id="meSel"></div><div class="me-ph" id="mePh"></div><div class="me-h" id="meHA"><b>A</b></div><div class="me-h" id="meHB"><b>B</b></div></div>
+   <div class="me-times"><span>Inizio <b id="meA"></b></span><span class="me-len" id="meLen"></span><span>Fine <b id="meB"></b></span></div>
+   <div class="me-ctl"><div class="me-grp"><button class="btn sm" data-n="A,-1000">−1s</button><button class="btn" id="meSetA" data-ic="pin">${ic('pin')} Inizio qui</button><button class="btn sm" data-n="A,1000">+1s</button></div>
+     <div class="me-grp"><button class="btn sm" data-n="B,-1000">−1s</button><button class="btn" id="meSetB" data-ic="pin">${ic('pin')} Fine qui</button><button class="btn sm" data-n="B,1000">+1s</button></div></div>
+   <button class="btn pri wide" id="mePrev" data-ic="play">${ic('play')} Ascolta il momento</button>
+   <div class="set"><h4>Nome</h4><div class="field">${ic('edit')}<input id="meLabel" maxlength="40" placeholder="Ritornello, Assolo, Drop…" value="${esc(editing?.label||src.label||'Ritornello')}"></div>
+     <div class="me-sugg">${['Ritornello','Strofa','Assolo','Drop','Intro','Finale','Bridge'].map(x=>`<button class="chipbtn" data-l="${x}">${x}</button>`).join('')}</div></div>
+   ${editing?'':`<div class="set"><h4>Salva in</h4><div class="me-sugg" id="meLists">${MOM.map(L=>`<button class="chipbtn ${L.id===target?'on':''}" data-t="${L.id}">${ic('scissors')}${esc(L.name)}</button>`).join('')}<button class="chipbtn ${target==='__new'?'on':''}" data-t="__new">${ic('plus')}Nuova playlist</button></div>
+     <div class="field" id="meNewW" style="margin-top:10px;${target==='__new'?'':'display:none'}">${ic('scissors')}<input id="meNew" maxlength="40" placeholder="Nome della playlist" value="I miei ritornelli"></div></div>`}
+   <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px"><button class="btn" data-close>Annulla</button><button class="btn pri" id="meSave" data-ic="check">${ic('check')} Salva</button></div>`,'me');
+  const m=$('.modal',ov),tl=$('#meTl',m);
+  const clampAB=()=>{A=Math.max(0,Math.min(A,T.dur-1000));B=Math.max(A+1000,Math.min(B,T.dur))};
+  const draw=()=>{clampAB();const pa=A/T.dur*100,pb=B/T.dur*100;$('#meSel',m).style.cssText=`left:${pa}%;width:${pb-pa}%`;$('#meHA',m).style.left=pa+'%';$('#meHB',m).style.left=pb+'%';
+    $('#meA',m).textContent=fmt(A);$('#meB',m).textContent=fmt(B);$('#meLen',m).textContent=fmtS(B-A);$$('.me-bars i',m).forEach((el,i)=>el.classList.toggle('in',(i+.5)/90*T.dur>=A&&(i+.5)/90*T.dur<=B))};
+  const updBtns=()=>{const on=playingThis();$('#meSetA',m).disabled=!on;$('#meSetB',m).disabled=!on;$('#meSetA',m).title=$('#meSetB',m).title=on?'Usa la posizione attuale':'Avvia il brano con “Ascolta” per usare la posizione attuale'};
+  draw();updBtns();
+  let drag=null;const at=e=>{const r=tl.getBoundingClientRect();return Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*T.dur};
+  tl.addEventListener('pointerdown',e=>{const x=at(e);drag=Math.abs(x-A)<=Math.abs(x-B)?'A':'B';if(drag==='A')A=x;else B=x;tl.setPointerCapture(e.pointerId);tl.classList.add('drag');draw()});
+  tl.addEventListener('pointermove',e=>{if(!drag)return;const x=at(e);if(drag==='A')A=Math.min(x,B-1000);else B=Math.max(x,A+1000);draw()});
+  const up=()=>{drag=null;tl.classList.remove('drag')};tl.addEventListener('pointerup',up);tl.addEventListener('pointercancel',up);
+  $$('[data-n]',m).forEach(b=>b.onclick=()=>{const[k,d]=b.dataset.n.split(',');if(k==='A')A+= +d;else B+= +d;draw()});
+  $('#meSetA',m).onclick=()=>{A=curPos();if(B<=A+1000)B=Math.min(T.dur,A+30000);draw()};
+  $('#meSetB',m).onclick=()=>{B=curPos();if(B<=A+1000)A=Math.max(0,B-30000);draw()};
+  $('#mePrev',m).onclick=async()=>{if(Q.mode==='moments'){Q.mode='list';Q.ctxLabel=''}PREV={id:trackId,end:B};MW.started=performance.now();await playBody({uris:[T.uri],position_ms:Math.round(A)});setTimeout(updBtns,1500)};
+  $$('.me-sugg [data-l]',m).forEach(b=>b.onclick=()=>{$('#meLabel',m).value=b.dataset.l});
+  $$('#meLists [data-t]',m).forEach(b=>b.onclick=()=>{target=b.dataset.t;$$('#meLists [data-t]',m).forEach(x=>x.classList.toggle('on',x===b));$('#meNewW',m).style.display=target==='__new'?'':'none';if(target==='__new')$('#meNew',m).focus()});
+  const ph=setInterval(()=>{if(!document.body.contains(m)){clearInterval(ph);return}const el=$('#mePh',m);if(playingThis()){el.style.display='';el.style.left=(curPos()/T.dur*100)+'%'}else el.style.display='none';updBtns()},250);
+  $('#meSave',m).onclick=()=>{clampAB();const label=$('#meLabel',m).value.trim()||'Momento';
+    if(editing){Object.assign(editing,{start:Math.round(A),end:Math.round(B),label});saveMom();ov.close();toast('Momento aggiornato','check');if(curView==='playlist')openMomList(opt.listId);return}
+    let L;if(target==='__new'){const n=($('#meNew',m).value||'').trim()||'I miei ritornelli';L={id:uid(),name:n,items:[],repeat:false,created:Date.now()};MOM.unshift(L)}else L=MOM.find(x=>x.id===target);
+    L.items.push({id:uid(),trackId,uri:T.uri,name:T.name,artists:T.artists,album:T.album,img:T.img,trackDur:T.dur,start:Math.round(A),end:Math.round(B),label});
+    LS.set('mt_momLast',L.id);saveMom();ov.close();toast(`Salvato in “${L.name}”`,'scissors',3500,{label:'Apri',fn:()=>openMomList(L.id)});if(curView==='moments')renderMoments()}}
+/* riproduzione a pezzi */
+async function playMoments(listId,i=0,shuf=false){const L=MOM.find(x=>x.id===listId);if(!L||!L.items.length)return;let items=L.items.slice();if(shuf)items=shuffle(items);
+  Object.assign(Q,{mode:'moments',list:items,idx:-1,mood:null,ctxLabel:'Momenti · '+L.name,momId:listId,repeat:!!L.repeat});await playMomentAt(i)}
+async function playMomentAt(i){const it=Q.list[i];if(!it)return;Q.idx=i;PREV=null;MW.started=performance.now();
+  const fade=cfg.momFade!==false&&isSdk();if(fade){try{await PB.sdk.setVolume(0)}catch{}}
+  await playBody({uris:[it.uri],position_ms:Math.round(it.start)});if(fade)fadeVol(0,PB.vol,700);markMomRows();if(fullOpen())renderFull(true)}
+function fadeVol(from,to,ms){const tok=++MW.fade,t0=performance.now();const step=()=>{if(tok!==MW.fade||!isSdk())return;const k=Math.min(1,(performance.now()-t0)/ms);try{PB.sdk.setVolume(from+(to-from)*k)}catch{}if(k<1)setTimeout(step,60)};step()}
+function markMomRows(){if(curView!=='playlist')return;$$('#pList .row').forEach((r,i)=>r.classList.toggle('mnow',Q.mode==='moments'&&Q.list[Q.idx]&&i===Q.idx))}
+async function momNext(){if(MW.busy)return;MW.busy=true;try{let n=Q.idx+1;if(n>=Q.list.length){if(Q.repeat)n=0;else{if(PB.st&&!PB.st.paused)await togglePlay();toast('Fine dei momenti','scissors');Q.mode='list';return}}await playMomentAt(n)}finally{setTimeout(()=>MW.busy=false,600)}}
+setInterval(()=>{const s=PB.st;if(!s||s.paused)return;const pos=curPos();
+  if(PREV&&s.id===PREV.id&&performance.now()-MW.started>1500&&pos>=PREV.end){PREV=null;togglePlay();return}
+  if(Q.mode!=='moments'||MW.busy)return;const it=Q.list[Q.idx];if(!it||performance.now()-MW.started<1500)return;
+  if(s.id!==it.trackId){if(performance.now()-MW.started>8000){Q.mode='list';renderNow(true)}return}
+  if(cfg.momFade!==false&&isSdk()&&pos>=it.end-1100&&pos<it.end-150&&!MW.fading){MW.fading=true;fadeVol(PB.vol,0,900);setTimeout(()=>MW.fading=false,1500)}
+  if(pos>=it.end-120)momNext()},200);
+/* richiesta testo con finestra custom */
+function promptBox(title,label,val=''){return new Promise(res=>{const ov=modal(`<h2>${esc(title)}</h2><div class="field" style="margin:16px 0 20px">${ic('edit')}<input id="pbIn" maxlength="40" placeholder="${esc(label)}" value="${esc(val)}"></div><div style="display:flex;gap:10px;justify-content:flex-end"><button class="btn" data-no>Annulla</button><button class="btn pri" data-ok>OK</button></div>`,'small');
+  const i=$('#pbIn',ov);setTimeout(()=>{i.focus();i.select()},60);const ok=()=>{const v=i.value.trim();ov.close();res(v||null)};
+  $('[data-no]',ov).onclick=()=>{ov.close();res(null)};$('[data-ok]',ov).onclick=ok;i.onkeydown=e=>{if(e.key==='Enter')ok()}})}
+
 /* ---------- Impostazioni ---------- */
 function openSettings(){const ov=modal(`<div class="mhd"><h2>Impostazioni</h2><button class="ib" data-close data-ic="close">${ic('close')}</button></div>
   <div class="set"><h4>Spotify</h4><div class="srow"><div><b>${D.me?esc(D.me.display_name||D.me.id):'Non collegato'}</b><span>${D.me?'Account collegato':'Collega il tuo account Spotify Premium'}</span></div>${D.me?`<button class="btn" id="stOut" data-ic="logout">${ic('logout')} Esci</button>`:`<button class="btn pri" id="stIn">${ic('spotify')} Collega</button>`}</div>
@@ -1056,8 +1204,9 @@ function openSettings(){const ov=modal(`<div class="mhd"><h2>Impostazioni</h2><b
    <div class="srow"><div><b>Meteo</b><span>Usa il meteo reale o simulane uno</span></div><span id="stSim"></span></div></div>
   <div class="set"><h4>Aspetto</h4><div class="srow"><div><b>Tema</b></div><div class="seg" id="stTheme">${[['dark','Scuro'],['light','Chiaro'],['system','Sistema']].map(([k,l])=>`<button data-t="${k}" class="${cfg.theme===k?'on':''}">${l}</button>`).join('')}</div></div>
    ${[['weather','Animazione meteo di sfondo','Pioggia, neve, stelle sullo sfondo'],['trans','Transizioni','Passaggi morbidi tra le schermate'],['cascade','Entrata a cascata','Gli elementi compaiono uno dopo l\'altro'],['icons','Icone animate','Micro-animazioni delle icone'],['blur','Effetto vetro','Sfocatura dei pannelli'],['liquid','Liquid Glass','Riflessi sui bordi, luce viva e pulsanti morbidi'],['tilt','Luce con l\'inclinazione','Il riflesso segue il movimento del telefono']].map(([k,b,s])=>`<div class="srow"><div><b>${b}</b><span>${s}</span></div><span data-fx="${k}"></span></div>`).join('')}</div>
+  <div class="set"><h4>Momenti</h4><div class="srow"><div><b>Dissolvenza tra i momenti</b><span>Volume morbido tra un pezzo e l'altro (player nel browser)</span></div><span id="stFade"></span></div></div>
   <div class="set"><h4>Dati</h4><div class="srow"><div><b>Gusti per meteo</b><span>${Object.values(learn).reduce((a,o)=>a+Object.keys(o).filter(k=>k.startsWith('t:')).length,0)} brani imparati</span></div><div style="display:flex;gap:6px"><button class="ib" id="stExp" data-ic="download" title="Esporta backup">${ic('download')}</button><button class="ib" id="stImp" data-ic="upload" title="Importa backup">${ic('upload')}</button><button class="ib" id="stRst" data-ic="trash" title="Azzera">${ic('trash')}</button></div></div></div>
-  <div class="set"><h4>App</h4><div class="srow"><div><b>Versione ${APP_VER}</b><span id="stVerS">Gli aggiornamenti arrivano da soli</span></div><button class="btn" id="stUpd" data-ic="refresh">${ic('refresh')} Controlla</button></div></div>`);
+  <div class="set"><h4>App</h4>${installRowHTML()}<div class="srow"><div><b>Versione ${APP_VER}</b><span id="stVerS">Gli aggiornamenti arrivano da soli</span></div><button class="btn" id="stUpd" data-ic="refresh">${ic('refresh')} Controlla</button></div></div>`);
   const m=$('.modal',ov);
   $('#stCid',m).onchange=e=>{cfg.clientId=e.target.value.trim();saveCfg();toast('Client ID salvato')};
   $('#stCopy',m).onclick=()=>{navigator.clipboard?.writeText(REDIRECT).then(()=>toast('Redirect URI copiata','copy'))};
@@ -1066,7 +1215,7 @@ function openSettings(){const ov=modal(`<div class="mhd"><h2>Impostazioni</h2><b
   toggle($('#stGeo',m),cfg.loc.mode==='auto',on=>{cfg.loc.mode=on?'auto':'manual';saveCfg();$('#stCityW',m).style.display=on?'none':'';if(on)loadWeather()});
   const ci=$('#stCity',m);let ct=0;ci.oninput=()=>{clearTimeout(ct);ct=setTimeout(async()=>{if(ci.value.trim().length<2)return;try{const j=await(await fetch('https://geocoding-api.open-meteo.com/v1/search?count=6&language=it&name='+encodeURIComponent(ci.value.trim()))).json();const r=ci.getBoundingClientRect();
     menu(r.left,r.bottom+6,(j.results||[]).length?j.results.map(c=>({label:`${c.name}${c.admin1?', '+c.admin1:''} (${c.country_code||''})`,icon:'pin',act:()=>{Object.assign(cfg.loc,{mode:'manual',name:c.name,lat:c.latitude,lon:c.longitude});saveCfg();ci.value=c.name;toast('Posizione: '+c.name,'pin');loadWeather()}})):[{h:'Nessuna città trovata'}],r.width)}catch{toast('Ricerca città non disponibile','alert')}},350)};
-  toggle($('#stAuto',m),cfg.auto,on=>{cfg.auto=on;saveCfg()});
+  toggle($('#stAuto',m),cfg.auto,on=>{cfg.auto=on;saveCfg()});toggle($('#stFade',m),cfg.momFade!==false,on=>{cfg.momFade=on;saveCfg()});
   dropdown($('#stOut2',m),[{v:'auto',l:isIOS?'Automatico (app Spotify)':'Automatico (browser)',i:'sparkle'},{v:'app',l:'App Spotify',i:'spotify'},{v:'browser',l:'Questo browser',i:'devices'}],cfg.out||'auto',async v=>{cfg.out=v;saveCfg();PB.askedApp=false;
     if(wantApp()){const a=await appDevice();if(a&&PB.st){try{await api('/me/player',{method:'PUT',body:{device_ids:[a.id],play:!PB.st.paused}});PB.deviceId=a.id;toast('Ora suona su '+a.name,'spotify')}catch{}}else if(!a)toast('Apri l\'app Spotify sul telefono per collegarla','spotify')}
     else if(PB.sdkId&&PB.st){try{await api('/me/player',{method:'PUT',body:{device_ids:[PB.sdkId],play:!PB.st.paused}});PB.deviceId=PB.sdkId;toast('Ora suona in Meteora','devices')}catch{}}});
@@ -1075,8 +1224,9 @@ function openSettings(){const ov=modal(`<div class="mhd"><h2>Impostazioni</h2><b
   dropdown($('#stSim',m),[{v:'',l:'Reale',i:'pin'},...MOOD_ORDER.map(k=>({v:k,l:MOODS[k].nome,i:k,wi:1}))],cfg.sim||'',v=>{cfg.sim=v||null;saveCfg();setMood(cfg.sim||WX.real)});
   $$('#stTheme button',m).forEach(b=>b.onclick=()=>{cfg.theme=b.dataset.t;saveCfg();applyTheme();$$('#stTheme button',m).forEach(x=>x.classList.toggle('on',x===b));FX.seed()});
   $$('[data-fx]',m).forEach(el=>{const k=el.dataset.fx;toggle(el,cfg.fx[k],async on=>{if(k==='tilt'&&on){const ok=await LIGHT.askTilt();if(!ok){el.setAttribute('aria-checked','false');toast('Permesso movimento negato','alert');return}}cfg.fx[k]=on;saveCfg();applyFx()})});
-  $('#stExp',m).onclick=async()=>{if(await BACKUP.save('meteora-backup.json',{meteora:2,learn,cfg}))toast('Backup esportato','download')};
-  $('#stImp',m).onclick=()=>{const f=$('#fileIn');f.value='';f.onchange=async()=>{try{const j=JSON.parse(await f.files[0].text());if(!j.learn)throw 0;for(const[k,o]of Object.entries(j.learn))learn[k]=Object.assign(learn[k]||{},o);saveLearn();if(j.cfg){const old=cfg.clientId;Object.assign(cfg,j.cfg);if(!j.cfg.clientId)cfg.clientId=old;saveCfg();toast('Backup importato','upload');setTimeout(()=>location.reload(),700)}else toast('Gusti importati','upload')}catch{toast('File non valido','alert')}};f.click()};
+  $('#stExp',m).onclick=async()=>{if(await BACKUP.save('meteora-backup.json',{meteora:2,learn,cfg,moments:MOM}))toast('Backup esportato','download')};
+  $('#stImp',m).onclick=()=>{const f=$('#fileIn');f.value='';f.onchange=async()=>{try{const j=JSON.parse(await f.files[0].text());if(!j.learn&&!j.moments)throw 0;if(Array.isArray(j.moments)){let n=0;for(const L of j.moments){if(!L||!Array.isArray(L.items))continue;const ex=MOM.find(x=>x.id===L.id);if(ex){const ids=new Set(ex.items.map(x=>x.id));L.items.forEach(x=>{if(!ids.has(x.id)){ex.items.push(x);n++}})}else{MOM.push(L);n+=L.items.length}}saveMom();if(!j.learn){toast(n+' momenti importati','upload');if(curView==='moments')renderMoments();return}}for(const[k,o]of Object.entries(j.learn||{}))learn[k]=Object.assign(learn[k]||{},o);saveLearn();if(j.cfg){const old=cfg.clientId;Object.assign(cfg,j.cfg);if(!j.cfg.clientId)cfg.clientId=old;saveCfg();toast('Backup importato','upload');setTimeout(()=>location.reload(),700)}else toast('Gusti importati','upload')}catch{toast('File non valido','alert')}};f.click()};
+  const ib=$('#stInst',m);if(ib)ib.onclick=installApp;
   $('#stUpd',m).onclick=async e=>{const b=e.currentTarget;b.disabled=true;$('#stVerS',m).textContent='Controllo…';const r=await checkUpdate(true);b.disabled=false;$('#stVerS',m).textContent=r==='same'?'Hai già l\'ultima versione':r==='new'?'Aggiornamento trovato':'Impossibile controllare ora'};
   $('#stRst',m).onclick=async()=>{if(await confirmBox('Azzerare i gusti?','Meteora dimenticherà i 👍 e 👎 che hai dato per ogni meteo.','Azzera')){learn={};saveLearn();toast('Gusti azzerati','trash')}}}
 
@@ -1093,12 +1243,23 @@ function showOnboard(){const o=$('#onb');o.classList.add('on');const fileMode=lo
 
 
 /* ---------- aggiornamenti automatici ---------- */
-const APP_VER='2026.10.10-13';let updShown=false;
+const APP_VER='2026.10.11-1';let updShown=false;
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 async function checkUpdate(manual){if(location.protocol==='file:')return'err';try{const j=await(await fetch('version.json?t='+Date.now(),{cache:'no-store'})).json();if(!j.v||j.v===APP_VER)return'same';
   const go=()=>{LS.set('mt_updated',j.v);location.reload()};if(manual||!PB.st||PB.st.paused){setTimeout(go,manual?600:0);return'new'}
   if(!updShown){updShown=true;toast('Nuova versione di Meteora disponibile','refresh',0,{label:'Aggiorna',fn:go})}return'new'}catch{return'err'}}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});setInterval(checkUpdate,15*60000);
+
+/* ---------- installazione su PC (app con finestra propria) ---------- */
+let instEvt=null;const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();instEvt=e;renderInstallBtn()});
+addEventListener('appinstalled',()=>{instEvt=null;renderInstallBtn();toast('Meteora installata: la trovi nel menu Start','install',5000)});
+function installRowHTML(){if(isStandalone())return`<div class="srow"><div><b>App installata</b><span>Stai usando Meteora come app</span></div></div>`;
+  if(instEvt)return`<div class="srow"><div><b>Installa su questo computer</b><span>Finestra propria, icona nel menu Start e nella barra</span></div><button class="btn pri" id="stInst" data-ic="install">${ic('install')} Installa</button></div>`;
+  if(isIOS)return`<div class="srow"><div><b>Installa su iPhone</b><span>In Safari: Condividi → Aggiungi alla schermata Home</span></div></div>`;
+  return`<div class="srow"><div><b>Installa su questo computer</b><span>In Chrome o Edge: icona ⊕ nella barra degli indirizzi → Installa</span></div></div>`}
+async function installApp(){if(!instEvt){toast('Usa l’icona ⊕ nella barra degli indirizzi','install',5000);return}instEvt.prompt();const r=await instEvt.userChoice;if(r.outcome==='accepted')instEvt=null;renderInstallBtn()}
+function renderInstallBtn(){let b=$('#sideInst');if(!instEvt||isStandalone()){b&&b.remove();return}if(!b){b=document.createElement('button');b.id='sideInst';b.className='nav';b.dataset.ic='install';b.innerHTML=ic('install')+'<span>Installa su PC</span>';b.onclick=installApp;$('#sideW').before(b)}}
 /* ---------- avvio ---------- */
 async function loadLibrary(){D.err=null;const g=p=>api(p).catch(e=>{D.err=D.err||e;return null});
   const[a,s,m,sv,r,pl]=await Promise.all([g('/me/top/artists?limit=20&time_range=short_term'),g('/me/top/tracks?limit=50&time_range=short_term'),g('/me/top/tracks?limit=50&time_range=medium_term'),g('/me/tracks?limit=50'),g('/me/player/recently-played?limit=50'),g('/me/playlists?limit=50')]);
