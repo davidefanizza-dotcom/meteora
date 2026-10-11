@@ -5,6 +5,7 @@ struct NowPlayingView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     @State private var scrub: Double?
+    @State private var editor: MomentDraft?
 
     var body: some View {
         let p = app.player
@@ -69,8 +70,11 @@ struct NowPlayingView: View {
             .scrollIndicators(.hidden)
         }
         .environment(\.colorScheme, .dark)
+        .sheet(item: $editor) { d in
+            MomentEditorView(draft: d)
+        }
         .task(id: p.current?.id) {
-            if p.mode != .meteo { await p.loadSpotifyQueue() }
+            if p.mode != .meteo && p.mode != .moments { await p.loadSpotifyQueue() }
         }
         .sensoryFeedback(.impact(weight: .light), trigger: p.current?.id) { _, _ in app.settings.haptics }
     }
@@ -84,7 +88,7 @@ struct NowPlayingView: View {
             .buttonBorderShape(.circle)
             Spacer()
             VStack(spacing: 2) {
-                Text(p.mode == .meteo ? "METEO MIX" : "IN RIPRODUZIONE DA")
+                Text(p.mode == .meteo ? "METEO MIX" : p.mode == .moments ? "MOMENTI" : "IN RIPRODUZIONE DA")
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(.secondary)
                 if p.mode == .meteo {
@@ -115,12 +119,26 @@ struct NowPlayingView: View {
                 Text(p.current?.name ?? "—")
                     .font(.title.weight(.bold))
                     .lineLimit(1)
-                Text(p.current?.artistLine ?? "")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    Text(p.current?.artistLine ?? "")
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                    if let m = p.currentMoment {
+                        Label(m.label ?? "Momento", systemImage: "scissors")
+                            .foregroundStyle(.tint)
+                            .lineLimit(1)
+                    }
+                }
+                .font(.title3)
             }
             Spacer()
+            if let t = p.current {
+                Button { editor = MomentDraft(track: t) } label: {
+                    Image(systemName: "scissors").font(.title2)
+                }
+                .buttonStyle(.plain)
+                .padding(.trailing, 6)
+            }
             if let t = p.current {
                 let isLiked = p.liked[t.id] == true
                 Button { Task { await p.toggleLike(t) } } label: {
@@ -145,6 +163,14 @@ struct NowPlayingView: View {
                         Task { await p.seek(Int(s)) }
                         scrub = nil
                     }
+                }
+                if let m = p.currentMoment {
+                    GeometryReader { g in
+                        Capsule().fill(.tint.opacity(0.45))
+                            .frame(width: max(4, Double(m.length) / dur * g.size.width), height: 5)
+                            .offset(x: Double(m.start) / dur * g.size.width)
+                    }
+                    .frame(height: 5)
                 }
                 HStack {
                     Text(formatTime(pos))
@@ -188,17 +214,18 @@ struct NowPlayingView: View {
     @ViewBuilder
     private func upNext(_ p: PlayerController) -> some View {
         let meteo = p.mode == .meteo
-        let list = meteo ? Array(p.upcoming.prefix(8)) : p.spotifyQueue
+        let mom = p.mode == .moments
+        let list = mom ? p.upcomingMoments.prefix(8).map(\.asTrack) : meteo ? Array(p.upcoming.prefix(8)) : p.spotifyQueue
         if !list.isEmpty {
             VStack(alignment: .leading, spacing: 6) {
-                Text(meteo ? "PROSSIMI NEL MIX" : "PROSSIMI IN CODA")
+                Text(mom ? "PROSSIMI MOMENTI" : meteo ? "PROSSIMI NEL MIX" : "PROSSIMI IN CODA")
                     .font(.caption.weight(.bold))
                     .foregroundStyle(.secondary)
                     .padding(.leading, 6)
                 ForEach(Array(list.enumerated()), id: \.offset) { i, t in
                     TrackRow(track: t, index: i, showReason: meteo) {
                         Task {
-                            if meteo { await p.playAt(p.idx + 1 + i) } else { await p.playFromSpotifyQueue(t) }
+                            if mom { await p.playMomentAt(p.idx + 1 + i) } else if meteo { await p.playAt(p.idx + 1 + i) } else { await p.playFromSpotifyQueue(t) }
                         }
                     }
                 }

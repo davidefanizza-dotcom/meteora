@@ -165,10 +165,10 @@ struct TrackRow: View {
                     .lineLimit(1)
                 HStack(spacing: 6) {
                     if showReason, let r = track.reason {
-                        Text(r)
+                        Text(track.discovery ? "✦ " + r : r)
                             .font(.caption2.weight(.bold))
                             .padding(.horizontal, 7).padding(.vertical, 2)
-                            .background(.tint.opacity(r == "Preferito" || r == "Tuo artista" ? 0.12 : 0.22), in: .capsule)
+                            .background(.tint.opacity(track.discovery ? 0.24 : 0.12), in: .capsule)
                     }
                     Text(track.artistLine)
                         .font(.subheadline)
@@ -239,6 +239,9 @@ struct TrackMenu: View {
         Button(p.liked[track.id] == true ? "Togli da Mi piace" : "Aggiungi a Mi piace",
                systemImage: p.liked[track.id] == true ? "heart.slash" : "heart") {
             Task { await p.toggleLike(track) }
+        }
+        Button("Crea momento", systemImage: "scissors") {
+            app.momentEditor = MomentDraft(track: track)
         }
         Button("Apri su Spotify", systemImage: "arrow.up.forward.app") {
             if let u = URL(string: "https://open.spotify.com/track/\(track.id)") { openURL(u) }

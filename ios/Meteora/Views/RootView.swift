@@ -33,6 +33,9 @@ struct RootView: View {
             Tab("Meteo Mix", systemImage: app.weather.mood.symbol, value: AppTab.meteo) {
                 NavigationStack { MeteoView() }
             }
+            Tab("Momenti", systemImage: "scissors", value: AppTab.moments) {
+                NavigationStack { MomentsView() }
+            }
             Tab("Libreria", systemImage: "square.stack.fill", value: AppTab.library) {
                 NavigationStack { LibraryView() }
             }
@@ -52,9 +55,13 @@ struct RootView: View {
         .sheet(isPresented: $app.showSettings) {
             SettingsView()
         }
+        .sheet(item: $app.momentEditor) { d in
+            MomentEditorView(draft: d)
+        }
         .task {
             if !app.library.loaded { await app.library.load() }
             app.player.startPolling()
+            app.analyzeLibrary()
         }
     }
 }

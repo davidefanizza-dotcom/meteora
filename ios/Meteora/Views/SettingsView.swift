@@ -69,6 +69,13 @@ struct SettingsView: View {
 
                 Section("Meteo Mix") {
                     Toggle("Adattamento automatico", isOn: $s.autoAdapt)
+                    Toggle(isOn: $s.keepAwake) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Funziona a schermo bloccato")
+                            Text("Meteo Mix e Momenti continuano anche col telefono in tasca").font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    .onChange(of: s.keepAwake) { _, _ in app.player.updateKeepAlive() }
                     Picker("Controlla il meteo ogni", selection: $s.intervalMin) {
                         Text("5 minuti").tag(5)
                         Text("10 minuti").tag(10)

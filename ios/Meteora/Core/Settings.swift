@@ -17,6 +17,8 @@ final class Settings {
     var lon: Double { didSet { d.set(lon, forKey: "lon") } }
     var animateWeather: Bool { didSet { d.set(animateWeather, forKey: "animateWeather") } }
     var haptics: Bool { didSet { d.set(haptics, forKey: "haptics") } }
+    /// Mantiene attiva l'app a schermo bloccato durante Meteo Mix e Momenti.
+    var keepAwake: Bool { didSet { d.set(keepAwake, forKey: "keepAwake") } }
     /// 0 = sistema, 1 = scuro, 2 = chiaro
     var theme: Int { didSet { d.set(theme, forKey: "theme") } }
     /// 0 = tutte, 1 = create da te, 2 = seguite
@@ -26,7 +28,7 @@ final class Settings {
         d.register(defaults: [
             "autoAdapt": true, "intervalMin": 10, "mixFav": 70.0, "useLocation": true,
             "cityName": "Calimera", "lat": 40.25, "lon": 18.28, "animateWeather": true,
-            "haptics": true, "theme": 1, "libFilter": 0
+            "haptics": true, "keepAwake": true, "theme": 1, "libFilter": 0
         ])
         clientId = d.string(forKey: "clientId") ?? ""
         autoAdapt = d.bool(forKey: "autoAdapt")
@@ -39,6 +41,7 @@ final class Settings {
         lon = d.double(forKey: "lon")
         animateWeather = d.bool(forKey: "animateWeather")
         haptics = d.bool(forKey: "haptics")
+        keepAwake = d.bool(forKey: "keepAwake")
         theme = d.integer(forKey: "theme")
         libFilter = d.integer(forKey: "libFilter")
     }

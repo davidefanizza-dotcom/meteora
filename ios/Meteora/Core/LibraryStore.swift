@@ -62,6 +62,12 @@ final class LibraryStore {
         }
     }
 
+    /// Tutti i brani che conosci (preferiti, salvati, recenti), senza doppioni.
+    var favorites: [Track] {
+        var seen = Set<String>()
+        return (topShort + topMedium + saved + recent).filter { seen.insert($0.id).inserted }
+    }
+
     func isMine(_ p: Playlist) -> Bool {
         (p.owner?.id != nil && p.owner?.id == me?.id) || (p.collaborative ?? false)
     }

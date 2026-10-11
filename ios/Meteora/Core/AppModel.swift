@@ -9,6 +9,8 @@ final class AppModel {
     let library: LibraryStore
     let learn: LearnStore
     let player: PlayerController
+    let analysis: AnalysisStore
+    let moments: MomentsStore
 
     var showNowPlaying = false
     var showSettings = false
@@ -27,7 +29,10 @@ final class AppModel {
         library = lib
         let l = LearnStore()
         learn = l
-        player = PlayerController(api: api, library: lib, weather: w, settings: s, learn: l)
+        let an = AnalysisStore()
+        analysis = an
+        moments = MomentsStore()
+        player = PlayerController(api: api, library: lib, weather: w, settings: s, learn: l, analysis: an)
     }
 
     func becameActive() {
@@ -40,7 +45,16 @@ final class AppModel {
     func didLogin() async {
         await library.load()
         player.startPolling()
+        analyzeLibrary()
     }
+
+    func analyzeLibrary() {
+        guard library.loaded else { return }
+        let favs = library.favorites
+        Task { await analysis.analyzeLibrary(favs) }
+    }
+
+    var momentEditor: MomentDraft?
 
     func logout() {
         player.reset()
@@ -50,4 +64,12 @@ final class AppModel {
     }
 }
 
-enum AppTab: Hashable { case home, meteo, library, search }
+enum AppTab: Hashable { case home, meteo, moments, library, search }
+
+/// Cosa aprire nell'editor dei momenti.
+struct MomentDraft: Identifiable {
+    let id = UUID()
+    let track: Track
+    var item: MomentItem? = nil
+    var listId: String? = nil
+}

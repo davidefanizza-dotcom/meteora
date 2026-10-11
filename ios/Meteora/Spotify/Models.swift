@@ -28,7 +28,10 @@ struct STrack: Codable, Hashable {
     let album: SAlbum?
     let durationMs: Int?
     let type: String?
+    let externalIds: ExternalIds?
 }
+
+struct ExternalIds: Codable, Hashable { let isrc: String? }
 
 struct Paging<T: Codable>: Codable {
     let items: [T]
@@ -114,8 +117,10 @@ struct Track: Codable, Hashable, Identifiable {
     let imageURL: URL?
     let largeImageURL: URL?
     let durationMs: Int
+    var isrc: String? = nil
     var reason: String? = nil
     var mood: Mood? = nil
+    var discovery = false
 
     var artistLine: String { artists.map(\.name).joined(separator: ", ") }
 
@@ -129,5 +134,17 @@ struct Track: Codable, Hashable, Identifiable {
         self.imageURL = s.album?.images?.best(300)
         self.largeImageURL = s.album?.images?.best(640)
         self.durationMs = s.durationMs ?? 0
+        self.isrc = s.externalIds?.isrc
+    }
+
+    init(id: String, uri: String, name: String, artists: [ArtistRef], album: String, imageURL: URL?, durationMs: Int) {
+        self.id = id
+        self.uri = uri
+        self.name = name
+        self.artists = artists
+        self.album = album
+        self.imageURL = imageURL
+        self.largeImageURL = imageURL
+        self.durationMs = durationMs
     }
 }

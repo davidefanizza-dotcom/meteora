@@ -19,7 +19,9 @@ struct MeteoraApp: App {
         .onChange(of: phase) { _, p in
             switch p {
             case .active: app.becameActive()
-            case .background: app.player.stopPolling()
+            case .background:
+                // Con Meteo Mix o Momenti l'app resta attiva (audio silenzioso) per seguire la coda.
+                if !app.player.keepsRunningInBackground { app.player.stopPolling() }
             default: break
             }
         }

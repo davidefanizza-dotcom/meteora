@@ -1,7 +1,7 @@
 import Foundation
 import UIKit
 
-enum PlayMode { case none, meteo, list, context }
+enum PlayMode { case none, meteo, list, context, moments }
 
 /// Comanda la riproduzione sull'app Spotify (Spotify Connect) e gestisce la coda del Meteo Mix.
 @MainActor @Observable
@@ -24,6 +24,14 @@ final class PlayerController {
     var contextURI: String?
     var spotifyQueue: [Track] = []
     var building = false
+    var buildProgress: (done: Int, total: Int)?
+
+    // Momenti
+    var moments: [MomentItem] = []
+    var momentListId: String?
+    var momentRepeat = false
+    var currentMoment: MomentItem? { mode == .moments ? moments[safe: idx] : nil }
+    var previewing: String?
 
     var liked: [String: Bool] = [:]
 
@@ -32,13 +40,18 @@ final class PlayerController {
     @ObservationIgnored private let weather: WeatherService
     @ObservationIgnored private let settings: Settings
     @ObservationIgnored private let learn: LearnStore
+    @ObservationIgnored private let analysis: AnalysisStore
+    @ObservationIgnored private var momentStarted = Date.distantPast
+    @ObservationIgnored private var watchTask: Task<Void, Never>?
+    @ObservationIgnored private var preview: (trackId: String, end: Int)?
     @ObservationIgnored private var pollTask: Task<Void, Never>?
     @ObservationIgnored private var queuedNextId: String?
     @ObservationIgnored private var pending: (() async -> Void)?
     @ObservationIgnored private var played = Set<String>()
     @ObservationIgnored private var advancing = false
 
-    init(api: SpotifyAPI, library: LibraryStore, weather: WeatherService, settings: Settings, learn: LearnStore) {
+    init(api: SpotifyAPI, library: LibraryStore, weather: WeatherService, settings: Settings, learn: LearnStore, analysis: AnalysisStore) {
+        self.analysis = analysis
         self.api = api
         self.library = library
         self.weather = weather
@@ -55,6 +68,11 @@ final class PlayerController {
     var upcoming: [Track] {
         guard mode == .meteo, idx + 1 < queue.count else { return [] }
         return Array(queue[(idx + 1)...])
+    }
+
+    var upcomingMoments: [MomentItem] {
+        guard mode == .moments, idx + 1 < moments.count else { return [] }
+        return Array(moments[(idx + 1)...])
     }
 
     var currentMood: Mood { mode == .meteo ? (mood ?? weather.mood) : weather.mood }
@@ -165,6 +183,7 @@ final class PlayerController {
         do {
             try await api.send("PUT", "/me/player/play", ["device_id": dev], body: body)
             queuedNextId = nil
+            updateKeepAlive()
             try? await Task.sleep(for: .milliseconds(700))
             await poll()
         } catch let e as APIError where e.code == 404 {
@@ -188,7 +207,8 @@ final class PlayerController {
         building = true
         defer { building = false }
         let m = weather.mood
-        let list = await MixEngine.build(mood: m, library: library, learn: learn, favPercent: settings.mixFav, played: played)
+        let list = await MixEngine.build(mood: m, library: library, learn: learn, analysis: analysis, favPercent: settings.mixFav, played: played) { [weak self] d, t in self?.buildProgress = (d, t) }
+        buildProgress = nil
         guard !list.isEmpty else {
             Toaster.shared.show("Nessun brano trovato, riprova", symbol: "exclamationmark.triangle.fill")
             return
@@ -219,7 +239,7 @@ final class PlayerController {
         defer { building = false }
         let keep = Array(queue.prefix(max(0, idx + 1)))
         let list = await MixEngine.build(mood: m, exclude: Set(keep.map(\.id)), library: library, learn: learn,
-                                         favPercent: settings.mixFav, played: played)
+                                         analysis: analysis, favPercent: settings.mixFav, played: played)
         queue = keep + list
         mood = m
         contextLabel = "Meteo Mix · \(m.name)"
@@ -282,12 +302,16 @@ final class PlayerController {
     }
 
     func next() async {
+        if mode == .moments {
+            await momentNext()
+            return
+        }
         advancing = true
         defer { advancing = false }
         if mode == .meteo {
             if idx + 1 >= queue.count - 3 {
                 let more = await MixEngine.build(mood: weather.mood, count: 25, exclude: Set(queue.map(\.id)),
-                                                 library: library, learn: learn, favPercent: settings.mixFav, played: played)
+                                                 library: library, learn: learn, analysis: analysis, favPercent: settings.mixFav, played: played)
                 queue += more
             }
             if queuedNextId != nil {
@@ -308,6 +332,10 @@ final class PlayerController {
     }
 
     func previous() async {
+        if mode == .moments, let it = currentMoment {
+            if position - it.start > 3000 { await seek(it.start) } else { await playMomentAt(max(0, idx - 1)) }
+            return
+        }
         if position > 3000 {
             await seek(0)
             return
@@ -370,6 +398,108 @@ final class PlayerController {
         }
     }
 
+    // MARK: - Momenti
+
+    func playMoments(_ list: MomentList, at i: Int = 0, shuffle: Bool = false) async {
+        guard !list.items.isEmpty else { return }
+        mode = .moments
+        moments = shuffle ? list.items.shuffled() : list.items
+        queue = moments.map(\.asTrack)
+        momentListId = list.id
+        momentRepeat = list.repeatOn ?? false
+        mood = nil
+        contextLabel = "Momenti · \(list.name)"
+        contextURI = nil
+        await playMomentAt(i)
+    }
+
+    func playMomentAt(_ i: Int) async {
+        guard let it = moments[safe: i] else { return }
+        idx = i
+        preview = nil
+        previewing = nil
+        momentStarted = Date()
+        await play(["uris": [it.uri], "position_ms": it.start])
+        ensureWatcher()
+    }
+
+    private func momentNext() async {
+        guard !advancing else { return }
+        advancing = true
+        defer { advancing = false }
+        var n = idx + 1
+        if n >= moments.count {
+            if momentRepeat {
+                n = 0
+            } else {
+                if isPlaying { await toggle() }
+                Toaster.shared.show("Fine dei momenti", symbol: "scissors")
+                mode = .list
+                updateKeepAlive()
+                return
+            }
+        }
+        await playMomentAt(n)
+    }
+
+    /// Anteprima dall'editor: suona il brano da `start` e si ferma a `end`.
+    func previewMoment(_ t: Track, start: Int, end: Int) async {
+        if mode == .moments { mode = .list }
+        preview = (t.id, end)
+        previewing = t.id
+        momentStarted = Date()
+        await play(["uris": [t.uri], "position_ms": start])
+        ensureWatcher()
+    }
+
+    private func ensureWatcher() {
+        guard watchTask == nil else { return }
+        watchTask = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self else { return }
+                if self.mode != .moments && self.preview == nil {
+                    self.watchTask = nil
+                    return
+                }
+                await self.watchStep()
+                try? await Task.sleep(for: .milliseconds(200))
+            }
+        }
+    }
+
+    private func watchStep() async {
+        guard isPlaying, let cur = current else { return }
+        let since = Date().timeIntervalSince(momentStarted)
+        guard since > 1.5 else { return }
+        let pos = position
+        if let p = preview, cur.id == p.trackId, pos >= p.end {
+            preview = nil
+            previewing = nil
+            await toggle()
+            return
+        }
+        guard mode == .moments, !advancing, let it = currentMoment else { return }
+        if cur.id != it.trackId {
+            if since > 8 {
+                mode = .list
+                updateKeepAlive()
+            }
+            return
+        }
+        if pos >= it.end - 150 { await momentNext() }
+    }
+
+    /// A schermo bloccato l'app resta attiva solo per Meteo Mix e Momenti (se l'opzione è attiva).
+    func updateKeepAlive() {
+        if settings.keepAwake && (mode == .meteo || mode == .moments) {
+            KeepAlive.shared.start()
+        } else {
+            KeepAlive.shared.stop()
+        }
+    }
+
+    var keepsRunningInBackground: Bool { settings.keepAwake && (mode == .meteo || mode == .moments) }
+
     // MARK: - Mi piace e gusti per meteo
 
     func checkLiked(_ id: String) async {
@@ -409,6 +539,7 @@ final class PlayerController {
 
     func reset() {
         stopPolling()
+        KeepAlive.shared.stop()
         current = nil
         isPlaying = false
         mode = .none

@@ -39,7 +39,9 @@ struct MeteoView: View {
                             Button {
                                 Task { await p.startMix() }
                             } label: {
-                                Label(p.mode == .meteo ? "Ricomincia" : "Avvia Meteo Mix", systemImage: "play.fill")
+                                Label(p.buildProgress.map { "Analizzo i brani… \($0.done)/\($0.total)" } ?? (p.mode == .meteo ? "Ricomincia" : "Avvia Meteo Mix"),
+                                      systemImage: p.buildProgress == nil ? "play.fill" : "sparkles")
+                                    .contentTransition(.numericText())
                                     .font(.headline)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 6)
@@ -63,6 +65,8 @@ struct MeteoView: View {
                     Toggle(isOn: $settings.autoAdapt) {
                         Label("La coda segue il meteo", systemImage: "sparkles")
                     }
+
+                    genresRow
                 }
                 .padding(22)
                 .glassEffect(.regular.tint(m.color.opacity(0.2)), in: .rect(cornerRadius: 32))
@@ -154,6 +158,28 @@ struct MeteoView: View {
         .background(WeatherBackground())
         .navigationTitle("Meteo Mix")
         .refreshable { await w.refresh() }
+    }
+
+    private var genresRow: some View {
+        let gs = app.analysis.moodGenres(app.weather.mood, favorites: app.library.favorites).prefix(4)
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "sparkles").foregroundStyle(.tint)
+                Text("Generi adatti").font(.footnote.weight(.semibold)).foregroundStyle(.secondary)
+                ForEach(Array(gs), id: \.self) { g in
+                    Text(GenreProfile.italian[g] ?? g)
+                        .font(.caption.weight(.bold))
+                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .background(.tint.opacity(0.2), in: .capsule)
+                }
+            }
+            if app.analysis.busy && app.analysis.total > 0 {
+                ProgressView(value: Double(app.analysis.done), total: Double(app.analysis.total)) {
+                    Text("Sto imparando i tuoi generi… \(app.analysis.done)/\(app.analysis.total)")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+            }
+        }
     }
 
     private func forecast(_ w: WeatherService) -> [(hour: HourForecast, changed: Bool)] {

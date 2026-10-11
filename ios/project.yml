@@ -22,6 +22,7 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSApplicationQueriesSchemes: [spotify]
+        UIBackgroundModes: [audio]
         CFBundleURLTypes:
           - CFBundleURLName: com.davidefanizza.meteora
             CFBundleURLSchemes: [meteora]
