@@ -651,7 +651,7 @@ async function api(path,opt={}){if(Date.now()<API.blockedUntil){const e=new Erro
 
 /* ---------- normalizzazione dati ---------- */
 function pickImg(imgs,size=300){if(!imgs||!imgs.length)return'';const s=imgs.slice().sort((a,b)=>(a.width||0)-(b.width||0));return(s.find(i=>(i.width||0)>=size)||s[s.length-1]).url}
-function norm(t){if(!t||!t.id||(t.type&&t.type!=='track'))return null;return{id:t.id,uri:t.uri||'spotify:track:'+t.id,name:t.name,artists:(t.artists||[]).map(a=>({id:a.id,name:a.name})),album:t.album?.name||'',img:pickImg(t.album?.images,300),dur:t.duration_ms||0}}
+function norm(t){if(!t||!t.id||(t.type&&t.type!=='track'))return null;return{id:t.id,uri:t.uri||'spotify:track:'+t.id,name:t.name,artists:(t.artists||[]).map(a=>({id:a.id,name:a.name})),album:t.album?.name||'',img:pickImg(t.album?.images,300),dur:t.duration_ms||0,isrc:t.external_ids?.isrc||''}}
 const artistsTxt=t=>t.artists.map(a=>a.name).join(', ');
 const D={me:null,topA:[],topS:[],topM:[],saved:[],recent:[],playlists:[],loaded:false};
 
@@ -676,22 +676,79 @@ function scheduleWeather(){clearInterval(moodTimer);moodTimer=setInterval(()=>lo
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&Date.now()-WX.time>cfg.interval*60000)loadWeather(true)});
 
 /* ---------- motore Meteo Mix ---------- */
+/* ---------- analisi brani: genere e BPM (Deezer, gratuito) ---------- */
+const GENRE_IT={'Pop':'Pop','Rap/Hip Hop':'Hip hop','Reggaeton':'Reggaeton','Rock':'Rock','Dance':'Dance','R&B':'R&B','Alternative':'Indie','Christian':'Cristiana','Electro':'Elettronica','Folk':'Folk','Reggae':'Reggae','Jazz':'Jazz','Country':'Country','Salsa':'Salsa','Traditional Mexicano':'Messicana','Classical':'Classica','Films/Games':'Colonne sonore','Metal':'Metal','Soul & Funk':'Soul & Funk','African Music':'Afro','Asian Music':'Asiatica','Blues':'Blues','Brazilian Music':'Brasiliana','Cumbia':'Cumbia','Indian Music':'Indiana','Kids':'Bambini','Latin Music':'Latina'};
+const GENRE_Q={'Pop':'pop','Rap/Hip Hop':'hip hop','Reggaeton':'reggaeton','Rock':'rock','Dance':'dance','R&B':'r&b','Alternative':'indie','Electro':'electronic','Folk':'folk','Reggae':'reggae','Jazz':'jazz','Country':'country','Salsa':'salsa','Classical':'piano','Films/Games':'soundtrack','Metal':'metal','Soul & Funk':'soul','African Music':'afrobeats','Blues':'blues','Brazilian Music':'bossa nova','Cumbia':'cumbia','Latin Music':'latin'};
+/* per ogni meteo: BPM ideali e quanto ogni genere è adatto (negativo = da evitare) */
+const PROFILE={
+ sole:{bpm:[100,130],fl:['summer','happy','sunny','feel good'],g:{'Pop':2,'Dance':2,'Soul & Funk':2,'Reggaeton':1.5,'Latin Music':1.5,'Reggae':1.5,'Brazilian Music':1,'Electro':1,'Rap/Hip Hop':.5,'Rock':.5,'Alternative':.5,'Metal':-2,'Classical':-1.5,'Blues':-.5}},
+ caldo:{bpm:[90,125],fl:['summer','tropical','beach','party'],g:{'Reggaeton':3,'Latin Music':2.5,'Salsa':2,'Cumbia':2,'Reggae':2,'Brazilian Music':2,'African Music':2,'Dance':1.5,'Pop':1,'Soul & Funk':1,'Rap/Hip Hop':.5,'Metal':-2,'Classical':-2,'Folk':-1,'Blues':-1}},
+ nuvoloso:{bpm:[75,110],fl:['chill','mellow','soft','calm'],g:{'Alternative':2,'Pop':1.5,'Folk':1.5,'R&B':1.5,'Soul & Funk':1,'Electro':1,'Jazz':1,'Rap/Hip Hop':.5,'Metal':-1.5,'Reggaeton':-1,'Salsa':-1,'Dance':-.5}},
+ pioggia:{bpm:[60,95],fl:['rainy day','acoustic','sad','slow'],g:{'Folk':2.5,'Alternative':2,'Jazz':2,'Classical':2,'R&B':2,'Blues':2,'Soul & Funk':1.5,'Films/Games':1,'Pop':.5,'Dance':-2,'Reggaeton':-2.5,'Latin Music':-1.5,'Salsa':-2,'Cumbia':-2,'Brazilian Music':-1,'Metal':-1.5,'African Music':-1}},
+ temporale:{bpm:[110,170],fl:['epic','intense','dark','power'],g:{'Rock':3,'Metal':3,'Films/Games':2,'Rap/Hip Hop':1.5,'Electro':1.5,'Alternative':1.5,'Pop':0,'Reggaeton':-1.5,'Folk':-1,'Jazz':-1,'Latin Music':-1.5,'Salsa':-2,'Cumbia':-2}},
+ neve:{bpm:[60,100],fl:['winter','cozy','calm','warm'],g:{'Classical':3,'Jazz':2,'Folk':2,'Films/Games':1.5,'Soul & Funk':1,'Blues':1,'Pop':1,'Alternative':1,'Dance':-2,'Reggaeton':-2,'Metal':-2,'Latin Music':-1.5,'Salsa':-2}},
+ nebbia:{bpm:[55,100],fl:['ambient','dreamy','atmospheric','ethereal'],g:{'Films/Games':2.5,'Electro':2,'Alternative':2,'Classical':2,'Folk':1,'Jazz':1,'Pop':.3,'Dance':-2,'Reggaeton':-2.5,'Latin Music':-2,'Salsa':-2,'Metal':-1}},
+ notte:{bpm:[70,115],fl:['night','late night','midnight','city lights'],g:{'R&B':3,'Electro':2,'Rap/Hip Hop':2,'Soul & Funk':1.5,'Jazz':1.5,'Pop':1,'Dance':1,'Alternative':1,'Folk':-1,'Country':-1.5,'Salsa':-1}},
+ vento:{bpm:[100,140],fl:['road trip','driving','free','highway'],g:{'Rock':2.5,'Alternative':2.5,'Pop':1.5,'Country':1.5,'Folk':1.5,'Electro':1,'Dance':.5,'Classical':-1,'Reggaeton':-.5}}};
+const ANA={t:LS.get('mt_ana',{}),a:LS.get('mt_alb',{}),busy:false,done:0,total:0,
+  save(){LS.set('mt_ana',this.t);LS.set('mt_alb',this.a)}};
+let dzN=0;
+function dzRaw(path){return new Promise((res,rej)=>{const cb='__dz'+(++dzN)+'_'+Date.now();const s=document.createElement('script');let fin=false;
+  const end=()=>{fin=true;clearTimeout(to);try{delete window[cb]}catch{window[cb]=undefined}s.remove()};
+  const to=setTimeout(()=>{if(!fin){end();rej(new Error('timeout'))}},9000);
+  window[cb]=d=>{end();res(d)};s.onerror=()=>{if(!fin){end();rej(new Error('rete'))}};
+  s.src='https://api.deezer.com'+path+(path.includes('?')?'&':'?')+'output=jsonp&callback='+cb;document.head.appendChild(s)})}
+const DZ={st:[],async call(path,retry=0){for(;;){const now=Date.now();this.st=this.st.filter(t=>now-t<5000);if(this.st.length<40)break;await sleep(5000-(now-this.st[0])+30)}
+  this.st.push(Date.now());const d=await dzRaw(path);if(d&&d.error){if(d.error.code===4&&retry<3){await sleep(2500);return this.call(path,retry+1)}return null}return d}};
+const cleanTitle=s=>s.replace(/\s*[\(\[].*?[\)\]]/g,'').replace(/\s+-\s+.*$/,'').trim();
+async function analyzeTrack(t){if(ANA.t[t.id])return ANA.t[t.id];
+  let d=null;if(t.isrc)d=await DZ.call('/track/isrc:'+encodeURIComponent(t.isrc));
+  if(!d||!d.id){const q=`artist:"${(t.artists[0]?.name||'').replace(/"/g,'')}" track:"${cleanTitle(t.name).replace(/"/g,'')}"`;const sr=await DZ.call('/search/track?limit=1&q='+encodeURIComponent(q));const h=sr?.data?.[0];if(h)d=await DZ.call('/track/'+h.id)}
+  const r={b:0,g:''};
+  if(d&&d.id){r.b=Math.round(d.bpm||0);const al=d.album?.id;if(al){if(ANA.a[al]===undefined){const A=await DZ.call('/album/'+al);ANA.a[al]=(A?.genres?.data||[]).map(x=>x.name).find(n=>n&&n!=='All')||''}r.g=ANA.a[al]||''}}
+  ANA.t[t.id]=r;return r}
+/* analizza una lista (4 alla volta, max 8 richieste/s); i brani falliti per rete non vengono salvati */
+async function analyzeAll(list,onProg){const todo=[];const seen=new Set();for(const t of list)if(t&&!ANA.t[t.id]&&!seen.has(t.id)){seen.add(t.id);todo.push(t)}
+  if(!todo.length)return 0;let i=0,done=0,fails=0;
+  const w=async()=>{while(i<todo.length&&fails<6){const t=todo[i++];try{await analyzeTrack(t)}catch{fails++}done++;onProg&&onProg(done,todo.length)}};
+  await Promise.all([w(),w(),w(),w()]);ANA.save();return todo.length}
+const favPool=()=>[...D.topS,...D.topM,...D.saved,...D.recent];
+async function analyzeLibrary(){if(ANA.busy||!D.loaded)return;ANA.busy=true;
+  try{await analyzeAll(favPool(),(d,t)=>{ANA.done=d;ANA.total=t;if(d%5===0||d===t)updAnaUI()})}finally{ANA.busy=false;ANA.total=0;updAnaUI()}}
+function updAnaUI(){const el=$('#anaInfo');if(el)el.innerHTML=anaInfoHTML()}
+/* quali generi ascolti tu (dai preferiti analizzati) */
+function userGenres(){const c={};let n=0;for(const t of favPool()){const a=ANA.t[t.id];if(a&&a.g){c[a.g]=(c[a.g]||0)+1;n++}}const out={};for(const k in c)out[k]=c[k]/n;return out}
+/* generi giusti per il meteo, pesati sui tuoi gusti */
+function moodGenres(mood){const P=PROFILE[mood].g,u=userGenres(),has=Object.keys(u).length>0;
+  return Object.entries(P).filter(([,w])=>w>0).map(([g,w])=>[g,w*(has?(.25+(u[g]||0)*4):1)]).sort((a,b)=>b[1]-a[1]).map(x=>x[0])}
+function anaInfoHTML(){const m=WX.mood,gs=moodGenres(m).slice(0,4).map(g=>GENRE_IT[g]||g);
+  return `<span class="gl">${ic('sparkle')}Generi adatti: ${gs.map(g=>`<b class="chip">${esc(g)}</b>`).join('')}</span>${ANA.busy&&ANA.total?`<span class="gl sub">Sto imparando i tuoi generi… ${ANA.done}/${ANA.total}</span>`:''}`}
+function bpmFit(b,[lo,hi]){const c=[b];if(b>135)c.push(b/2);if(b<75)c.push(b*2);return Math.max(...c.map(x=>x>=lo&&x<=hi?1:1-Math.min(1,Math.min(Math.abs(x-lo),Math.abs(x-hi))/25)))}
+/* punteggio di affinità col meteo: null = da escludere */
+function moodFit(t,mood){const a=ANA.t[t.id],P=PROFILE[mood];if(!a)return{s:-.6,known:false};let s=0;
+  if(a.g){const w=P.g[a.g]??0;if(w<=-1.5)return null;s+=w*1.6}else s-=.4;
+  if(a.b>0)s+=bpmFit(a.b,P.bpm)*2-.8;return{s,known:!!a.g,g:a.g,b:a.b}}
 const sessionPlayed=new Set();
-function topGenres(){const c={};D.topA.forEach((a,i)=>(a.genres||[]).forEach(g=>c[g]=(c[g]||0)+(20-i)));return Object.entries(c).sort((a,b)=>b[1]-a[1]).map(x=>x[0])}
-async function buildMix(mood,n=40,exclude=new Set()){const M=MOODS[mood],pool=new Map();
+async function buildMix(mood,n=40,exclude=new Set(),onProg){const M=MOODS[mood],P=PROFILE[mood],pool=new Map();
   const add=(list,src)=>list.forEach(t=>{if(!t||exclude.has(t.id))return;const e=pool.get(t.id)||{t,src:new Set()};e.src.add(src);pool.set(t.id,e)});
   add(D.topS,'fav');add(D.topM,'fav');add(D.saved,'fav');add(D.recent,'fav');
-  const arts=pick(D.topA.slice(0,12),3),gen=topGenres(),reqs=[];
-  arts.forEach(a=>reqs.push(['artist',`artist:"${a.name}"`,0]));
-  pick(M.seeds,3).forEach((s,i)=>{const g=gen[i]||gen[0];reqs.push(['disc',g&&i<2?`${s} genre:"${g}"`:s,Math.floor(Math.random()*3)*10])});
+  /* artisti tuoi il cui genere va bene con questo meteo */
+  const artG={};for(const t of favPool()){const a=ANA.t[t.id];const ar=t.artists[0];if(!ar||!a||!a.g)continue;(artG[ar.id]=artG[ar.id]||{name:ar.name,c:{}}).c[a.g]=(artG[ar.id].c[a.g]||0)+1}
+  const goodArts=Object.values(artG).map(x=>{const g=Object.entries(x.c).sort((a,b)=>b[1]-a[1])[0][0];return{name:x.name,w:P.g[g]??0}}).filter(x=>x.w>=1);
+  const reqs=[];pick(goodArts.length?goodArts:D.topA.slice(0,12).map(a=>({name:a.name})),2).forEach(a=>reqs.push(['artist',`artist:"${a.name}"`,0]));
+  const gens=moodGenres(mood).slice(0,4);pick(gens.slice(0,3),3).forEach(g=>reqs.push(['disc',`${GENRE_Q[g]||g} ${pick(P.fl,1)[0]}`,Math.floor(Math.random()*3)*10]));
+  reqs.push(['disc',pick(M.seeds,1)[0],Math.floor(Math.random()*3)*10]);
   const res=await Promise.allSettled(reqs.map(([,q,off])=>api('/search?'+new URLSearchParams({q,type:'track',limit:10,offset:off}))));
   res.forEach((r,i)=>{if(r.status==='fulfilled')add((r.value?.tracks?.items||[]).map(norm),reqs[i][0])});
+  await analyzeAll([...pool.values()].map(e=>e.t),onProg);
   const L=learn[mood]||{},kwRe=M.kw.map(k=>[k,new RegExp('(^|[^a-zà-ù])'+k+'([^a-zà-ù]|$)','i')]);
-  const scored=[];for(const e of pool.values()){const t=e.t,txt=t.name+' '+t.album;let s=Math.random()*2.5,hit=null;
-    for(const[k,re]of kwRe)if(re.test(txt)){s+=3.2;hit=k;break}
-    const lt=L['t:'+t.id]||0;if(lt<0)continue;const la=t.artists.reduce((a,x)=>a+(L['a:'+x.id]||0),0);s+=lt*4+la*1.5;
-    if(e.src.has('fav'))s+=2;if(e.src.has('artist'))s+=1.2;if(e.src.has('disc'))s+=1.5;if(sessionPlayed.has(t.id))s-=6;
-    const reason=lt>0||la>0.9?'Imparato':hit?'“'+hit+'”':e.src.has('fav')?'Preferito':e.src.has('artist')?'Tuo artista':'Scoperta';
+  const scored=[];for(const e of pool.values()){const t=e.t,txt=t.name+' '+t.album;
+    const lt=L['t:'+t.id]||0;if(lt<0)continue;const la=t.artists.reduce((a,x)=>a+(L['a:'+x.id]||0),0);if(la<=-2)continue;
+    const f=moodFit(t,mood);if(!f&&lt<=0)continue;
+    let s=Math.random()*1.5+(f?f.s:0),hit=null;for(const[k,re]of kwRe)if(re.test(txt)){s+=2.5;hit=k;break}
+    s+=lt*4+la*1.5;if(e.src.has('fav'))s+=1.2;if(e.src.has('artist'))s+=.8;if(e.src.has('disc'))s+=.6;if(sessionPlayed.has(t.id))s-=6;
+    const a=ANA.t[t.id],gl=a&&a.g?(GENRE_IT[a.g]||a.g)+(a.b?' · '+a.b+' BPM':''):'';
+    const reason=lt>0||la>0.9?'Imparato':gl||(hit?'“'+hit+'”':e.src.has('disc')?'Scoperta':'Preferito');
     scored.push({t,s,reason,kind:e.src.has('fav')||e.src.has('artist')?'fav':'disc'})}
   scored.sort((a,b)=>b.s-a.s);
   const favs=scored.filter(x=>x.kind==='fav'),disc=scored.filter(x=>x.kind==='disc'),out=[],perA={};
@@ -699,7 +756,7 @@ async function buildMix(mood,n=40,exclude=new Set()){const M=MOODS[mood],pool=ne
   const take=(arr,idx)=>{while(idx<arr.length){const x=arr[idx++],a=x.t.artists[0]?.id||'';if((perA[a]||0)>=2)continue;perA[a]=(perA[a]||0)+1;return[x,idx]}return[null,idx]};
   while(out.length<n&&(fi<favs.length||di<disc.length)){const wantFav=cf<nFav&&(cd>=n-nFav||cf/(nFav||1)<=cd/((n-nFav)||1));let x;
     if(wantFav){[x,fi]=take(favs,fi);if(x)cf++;else{[x,di]=take(disc,di);if(x)cd++}}else{[x,di]=take(disc,di);if(x)cd++;else{[x,fi]=take(favs,fi);if(x)cf++}}
-    if(!x)break;out.push({...x.t,reason:x.reason,mood})}
+    if(!x)break;out.push({...x.t,reason:x.reason,src:x.kind,mood})}
   return out}
 
 /* ---------- coda & riproduzione ---------- */
