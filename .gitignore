@@ -3,3 +3,7 @@ ios/*.xcodeproj/
 ios/Payload/
 ios/*.ipa
 ios/build.log
+
+# screenshot di prova
+/*_*.png
+!icon-*.png
