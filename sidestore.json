@@ -16,12 +16,12 @@
       "category": "entertainment",
       "versions": [
         {
-          "version": "1.0.1",
-          "buildVersion": "1",
-          "date": "2026-10-10T17:09:24Z",
+          "version": "1.0.2",
+          "buildVersion": "2",
+          "date": "2026-10-11T14:15:17Z",
           "localizedDescription": "Nuova build automatica.",
-          "downloadURL": "https://github.com/davidefanizza-dotcom/meteora/releases/download/ios-v1.0.1/Meteora.ipa",
-          "size": 930707,
+          "downloadURL": "https://github.com/davidefanizza-dotcom/meteora/releases/download/ios-v1.0.2/Meteora.ipa",
+          "size": 2455771,
           "minOSVersion": "26.0"
         }
       ],
