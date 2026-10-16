@@ -867,12 +867,13 @@ async function adaptQueue(m){try{const ex=new Set(Q.list.slice(0,Q.idx+1).map(t=
 async function regenMix(){if(Q.mode!=='meteo'){startMix();return}await adaptQueue(WX.mood);toast('Coda rigenerata per '+MOODS[WX.mood].nome,'refresh')}
 async function playAt(i){const t=Q.list[i];if(!t)return;Q.idx=i;sessionPlayed.add(t.id);PB.userPaused=false;await playBody({uris:[t.uri]});renderMixList()}
 const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-const wantApp=()=>cfg.out==='app'||(cfg.out==='auto'&&isIOS);
+const isAndroid=/Android/i.test(navigator.userAgent),AND=window.MeteoraAndroid||null;
+const wantApp=()=>cfg.out==='app'||(cfg.out==='auto'&&(isIOS||isAndroid));
 async function appDevice(){try{const d=(await api('/me/player/devices')).devices||[];return d.find(x=>x.id!==PB.sdkId&&x.is_active)||d.find(x=>x.id!==PB.sdkId&&x.type==='Smartphone')||null}catch{return null}}
 async function sdkOn(){if(!PB.sdk)return false;if(PB.sdkConnected&&PB.sdkId)return true;try{PB.sdkId=null;await PB.sdk.connect();for(let i=0;i<20&&!PB.sdkId;i++)await sleep(200)}catch{}return!!PB.sdkId}
 function sdkOff(){if(PB.sdk&&PB.sdkConnected){try{PB.sdk.disconnect()}catch{}PB.sdkConnected=false;PB.sdkId=null}}
 async function ensureDevice(){if(wantApp()){const a=await appDevice();if(a){PB.deviceId=a.id;return a.id}
-    if(!PB.askedApp){PB.askedApp=true;toast('Per la cover sul blocco schermo apri Spotify una volta, poi torna qui','spotify',8000,{label:'Apri Spotify',fn:()=>{location.href='spotify:'}})}
+    if(!PB.askedApp){PB.askedApp=true;toast('Per la cover sul blocco schermo apri Spotify una volta, poi torna qui','spotify',8000,{label:'Apri Spotify',fn:()=>{AND?AND.openSpotify():location.href='spotify:'}})}
     if(await sdkOn()){PB.deviceId=PB.sdkId;return PB.sdkId}}
   if(PB.deviceId&&(PB.deviceId!==PB.sdkId||PB.sdkConnected))return PB.deviceId;
   if(!wantApp()&&await sdkOn()){PB.deviceId=PB.sdkId;return PB.sdkId}
@@ -1286,7 +1287,7 @@ function showOnboard(){const o=$('#onb');o.classList.add('on');const fileMode=lo
 
 
 /* ---------- aggiornamenti automatici ---------- */
-const APP_VER='2026.10.11-4';let updShown=false;
+const APP_VER='2026.10.16-1';let updShown=false;
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 async function checkUpdate(manual){if(location.protocol==='file:')return'err';try{const j=await(await fetch('version.json?t='+Date.now(),{cache:'no-store'})).json();if(!j.v||j.v===APP_VER)return'same';
   const go=()=>{LS.set('mt_updated',j.v);location.reload()};if(manual||!PB.st||PB.st.paused){setTimeout(go,manual?600:0);return'new'}
@@ -1303,6 +1304,13 @@ function installRowHTML(){if(isStandalone())return`<div class="srow"><div><b>App
   return`<div class="srow"><div><b>Installa su questo computer</b><span>In Chrome o Edge: icona ⊕ nella barra degli indirizzi → Installa</span></div></div>`}
 async function installApp(){if(!instEvt){toast('Usa l’icona ⊕ nella barra degli indirizzi','install',5000);return}instEvt.prompt();const r=await instEvt.userChoice;if(r.outcome==='accepted')instEvt=null;renderInstallBtn()}
 function renderInstallBtn(){let b=$('#sideInst');if(!instEvt||isStandalone()){b&&b.remove();return}if(!b){b=document.createElement('button');b.id='sideInst';b.className='nav';b.dataset.ic='install';b.innerHTML=ic('install')+'<span>Installa su PC</span>';b.onclick=installApp;$('#sideW').before(b)}}
+
+/* ---------- app Android: sottofondo e tasto Indietro ---------- */
+if(AND){let last=null;setInterval(()=>{const on=(Q.mode==='meteo'||Q.mode==='moments')&&!!PB.st&&!PB.st.paused;if(on!==last){last=on;try{AND.keepAlive(on)}catch{}}},3000)}
+window.__meteoraBack=()=>{const ov=$$('.ov');if(ov.length){const o=ov[ov.length-1];o.close?o.close():o.remove();return true}
+  if(openMenuEl){closeMenu();return true}if(fullOpen()){closeFull();return true}
+  if(curView==='playlist'){show(Q&&$('#v-playlist .back')?.textContent.includes('Momenti')?'moments':'library');return true}
+  if(curView!=='home'){show('home');return true}return false};
 /* ---------- avvio ---------- */
 async function loadLibrary(){D.err=null;const g=p=>api(p).catch(e=>{D.err=D.err||e;return null});
   const[a,s,m,sv,r,pl]=await Promise.all([g('/me/top/artists?limit=20&time_range=short_term'),g('/me/top/tracks?limit=50&time_range=short_term'),g('/me/top/tracks?limit=50&time_range=medium_term'),g('/me/tracks?limit=50'),g('/me/player/recently-played?limit=50'),g('/me/playlists?limit=50')]);
@@ -1320,6 +1328,7 @@ async function startApp(){$('#onb').classList.remove('on');try{D.me=await api('/
 const BACKUP = {
   async save(name, data){
     const txt = JSON.stringify(data, null, 2);
+    if (window.MeteoraAndroid) return window.MeteoraAndroid.saveFile(name, txt);
     const file = new File([txt], name, { type: "application/json" });
     try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: name }); return true; } } catch (e) { if (e && e.name === "AbortError") return false; }
     const a = document.createElement("a"); a.href = URL.createObjectURL(file); a.download = name; document.body.appendChild(a); a.click(); a.remove();

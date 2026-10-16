@@ -1,0 +1,54 @@
+name: App Android
+
+on:
+  push:
+    branches: [main]
+    paths: ['android/**', '.github/workflows/android.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      VCODE: ${{ github.run_number }}
+      VNAME: 1.0.${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Compila l'APK
+        run: |
+          set -o pipefail
+          gradle -p android assembleRelease --no-daemon 2>&1 | tee build.log
+          cp android/app/build/outputs/apk/release/app-release.apk Meteora.apk
+          ls -la Meteora.apk
+
+      - name: Mostra gli errori
+        if: failure()
+        run: |
+          grep -E "error:|e: |FAILURE|What went wrong" -A 3 build.log | head -80
+
+      - name: Pubblica la release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "android-v$VNAME" Meteora.apk \
+            --title "Meteora Android $VNAME" \
+            --notes "App per Android 7+ (provata per Android 14). Scarica Meteora.apk e installalo." \
+            --latest=false
